@@ -83,7 +83,7 @@ dependencies {
     implementation("com.google.guava:guava:31.1-android")
 
     // 🌟 Firebase 필수 부품들 (이제 완벽하게 설치됩니다!)
-    implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")

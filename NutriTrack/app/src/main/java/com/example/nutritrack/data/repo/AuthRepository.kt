@@ -38,4 +38,14 @@ class AuthRepository {
             Result.failure(e)
         }
     }
+    // --- 기존 isNicknameAvailable, signUp 코드는 그대로 두시고 아래 추가 ---
+
+    suspend fun login(email: String, password: String): Result<Unit> {
+        return try {
+            auth.signInWithEmailAndPassword(email, password).await()
+            Result.success(Unit) // 로그인 성공!
+        } catch (e: Exception) {
+            Result.failure(e)    // 로그인 실패 (비밀번호 틀림 등)
+        }
+    }
 }

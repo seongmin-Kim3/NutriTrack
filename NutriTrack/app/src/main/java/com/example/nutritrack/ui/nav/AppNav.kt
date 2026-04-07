@@ -9,37 +9,47 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.nutritrack.NuonApp
+import com.example.nutritrack.data.repo.AuthRepository
 import com.example.nutritrack.data.settings.FastingPrefs
 import com.example.nutritrack.ui.screens.*
+import com.example.nutritrack.ui.viewmodel.AuthViewModel
 import com.example.nutritrack.ui.viewmodel.FoodViewModel
 import com.example.nutritrack.ui.viewmodel.MealViewModel
 
 @Composable
-fun AppNav() {
+// 🌟 1. MainActivity에서 'home'으로 갈지 'login'으로 갈지 결정한 값을 받아옵니다.
+fun AppNav(startDestination: String = "login") {
     val navController = rememberNavController()
     val context = LocalContext.current
 
     val app = context.applicationContext as NuonApp
     val container = app.container
 
+    // 기존 뷰모델 및 저장소들
     val goalPrefs = container.goalPrefs
-    val fastingPrefs = FastingPrefs(context) // 🌟 타이머 저장소 추가됨!
+    val fastingPrefs = FastingPrefs(context)
     val mealVm: MealViewModel = viewModel(factory = container.mealViewModelFactory)
     val foodVm: FoodViewModel = viewModel(factory = container.foodViewModelFactory)
 
-    val startDest = "login"
+    // 🌟 2. 파이어베이스 회원가입/로그인을 담당할 사령관(ViewModel) 준비!
+    val authRepository = AuthRepository()
+    val authViewModel = AuthViewModel(authRepository)
 
     NavHost(
         navController = navController,
-        startDestination = startDest
+        startDestination = startDestination // 🌟 3. 고정된 값이 아닌, 받아온 시작점으로 앱을 켭니다.
     ) {
+
+        // --- [인증 및 초기 설정 구간] ---
 
         composable("login") {
             LoginScreen(
+                authVm = authViewModel, // 로그인 화면에 뷰모델 연결
                 onLoginSuccess = {
+                    // 로그인 성공 시 프로필 설정 여부에 따라 홈으로 갈지 설정으로 갈지 결정!
                     val nextScreen = if (goalPrefs.isProfileSetup()) "home" else "setupProfile"
                     navController.navigate(nextScreen) {
-                        popUpTo("login") { inclusive = true }
+                        popUpTo("login") { inclusive = true } // 로그인 화면은 뒤로 가기 못하게 파괴
                     }
                 },
                 onNavigateToSignUp = { navController.navigate("signup") }
@@ -48,8 +58,9 @@ fun AppNav() {
 
         composable("signup") {
             SignUpScreen(
-                onSignUpSuccess = { navController.popBackStack() },
-                onBackToLogin = { navController.popBackStack() }
+                authVm = authViewModel, // 회원가입 화면에 뷰모델 연결
+                onBack = { navController.popBackStack() },
+                onSignupSuccess = { navController.popBackStack() } // 가입 성공하면 다시 로그인 화면으로!
             )
         }
 
@@ -64,6 +75,8 @@ fun AppNav() {
             )
         }
 
+        // --- [메인 기능 구간] ---
+
         composable("home") {
             HomeScreen(
                 vm = mealVm,
@@ -74,7 +87,7 @@ fun AppNav() {
                 onWeekly = { navController.navigate("weekly") },
                 onSavedFoods = { navController.navigate("savedFoods") },
                 onRecipeRecommend = { navController.navigate("recipe") },
-                onFastingTimer = { navController.navigate("fasting") } // 🌟 타이머 화면으로 가는 길 뚫림!
+                onFastingTimer = { navController.navigate("fasting") }
             )
         }
 
@@ -82,7 +95,6 @@ fun AppNav() {
             RecipeScreen(onBack = { navController.popBackStack() })
         }
 
-        // 🌟 새로 추가된 타이머 화면!
         composable("fasting") {
             FastingScreen(
                 fastingPrefs = fastingPrefs,

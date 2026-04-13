@@ -1,6 +1,9 @@
 package com.example.nutritrack.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background // 🌟 배경색을 위한 임포트 추가
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +29,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
+
 
 @Composable
 fun WeightGoalGauge(
@@ -104,6 +108,7 @@ fun WeightGoalGauge(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -163,11 +168,12 @@ fun HomeScreen(
     val goalProtein = goalPrefs.getProteinGoal()
     val goalFat = goalPrefs.getFatGoal()
 
-    // 🌟 에러 해결: 에러 났던 코드를 지우고 임시 가짜 데이터를 넣었습니다!
-    // 나중에 이 숫자를 바꿔보시면 러닝맨이 왔다갔다 하는 걸 볼 수 있습니다.
-    val startWeight = 80f   // 시작 체중
-    val currentWeight = 73f // 현재 체중
-    val targetWeight = 65f  // 목표 체중
+    val currentWeight = goalPrefs.getUserWeight()
+    val targetWeight = goalPrefs.getTargetWeight()
+
+    val startWeight = if (currentWeight > targetWeight) currentWeight + (currentWeight - targetWeight)
+    else if (currentWeight < targetWeight) currentWeight - (targetWeight - currentWeight)
+    else currentWeight
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Nuon") }) }
@@ -227,7 +233,10 @@ fun HomeScreen(
                     Text("오늘 섭취 요약", style = MaterialTheme.typography.titleMedium)
 
                     MacroProgressBar(title = "칼로리", current = totalKcal, target = goalKcal, unit = "kcal", modifier = Modifier.fillMaxWidth())
-                    Divider()
+
+                    // 🌟 에러 차단: Divider 대신 버전을 타지 않는 안전한 가로선을 그렸습니다!
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+
                     Text("탄/단/지 목표 달성률", style = MaterialTheme.typography.titleSmall)
                     MacroProgressBar(title = "탄수화물", current = totalCarbs, target = goalCarbs, unit = "g", modifier = Modifier.fillMaxWidth())
                     MacroProgressBar(title = "단백질", current = totalProtein, target = goalProtein, unit = "g", modifier = Modifier.fillMaxWidth())

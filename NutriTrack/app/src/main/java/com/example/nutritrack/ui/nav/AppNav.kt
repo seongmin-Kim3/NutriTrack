@@ -17,7 +17,6 @@ import com.example.nutritrack.ui.viewmodel.FoodViewModel
 import com.example.nutritrack.ui.viewmodel.MealViewModel
 
 @Composable
-// 🌟 1. MainActivity에서 'home'으로 갈지 'login'으로 갈지 결정한 값을 받아옵니다.
 fun AppNav(startDestination: String = "login") {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -25,31 +24,28 @@ fun AppNav(startDestination: String = "login") {
     val app = context.applicationContext as NuonApp
     val container = app.container
 
-    // 기존 뷰모델 및 저장소들
     val goalPrefs = container.goalPrefs
     val fastingPrefs = FastingPrefs(context)
     val mealVm: MealViewModel = viewModel(factory = container.mealViewModelFactory)
     val foodVm: FoodViewModel = viewModel(factory = container.foodViewModelFactory)
 
-    // 🌟 2. 파이어베이스 회원가입/로그인을 담당할 사령관(ViewModel) 준비!
     val authRepository = AuthRepository()
     val authViewModel = AuthViewModel(authRepository)
 
     NavHost(
         navController = navController,
-        startDestination = startDestination // 🌟 3. 고정된 값이 아닌, 받아온 시작점으로 앱을 켭니다.
+        startDestination = startDestination
     ) {
 
         // --- [인증 및 초기 설정 구간] ---
 
         composable("login") {
             LoginScreen(
-                authVm = authViewModel, // 로그인 화면에 뷰모델 연결
+                authVm = authViewModel,
                 onLoginSuccess = {
-                    // 로그인 성공 시 프로필 설정 여부에 따라 홈으로 갈지 설정으로 갈지 결정!
                     val nextScreen = if (goalPrefs.isProfileSetup()) "home" else "setupProfile"
                     navController.navigate(nextScreen) {
-                        popUpTo("login") { inclusive = true } // 로그인 화면은 뒤로 가기 못하게 파괴
+                        popUpTo("login") { inclusive = true }
                     }
                 },
                 onNavigateToSignUp = { navController.navigate("signup") }
@@ -58,9 +54,9 @@ fun AppNav(startDestination: String = "login") {
 
         composable("signup") {
             SignUpScreen(
-                authVm = authViewModel, // 회원가입 화면에 뷰모델 연결
+                authVm = authViewModel,
                 onBack = { navController.popBackStack() },
-                onSignupSuccess = { navController.popBackStack() } // 가입 성공하면 다시 로그인 화면으로!
+                onSignupSuccess = { navController.popBackStack() }
             )
         }
 
@@ -102,21 +98,43 @@ fun AppNav(startDestination: String = "login") {
             )
         }
 
+        // 🌟 수정된 부분 1: 식단 추가 화면 (데이터 받을 준비 완료)
         composable(
             route = "add/{type}",
             arguments = listOf(navArgument("type") { type = NavType.StringType })
         ) { entry ->
             val type = entry.arguments?.getString("type") ?: "점심"
+
+            // 💡 바코드 화면에서 돌아올 때 주머니(savedStateHandle)에 담아온 데이터를 꺼냅니다!
+            val savedStateHandle = entry.savedStateHandle
+            val sName = savedStateHandle.get<String>("sName")
+            val sKcal = savedStateHandle.get<String>("sKcal")
+            val sCarbs = savedStateHandle.get<String>("sCarbs")
+            val sProtein = savedStateHandle.get<String>("sProtein")
+            val sFat = savedStateHandle.get<String>("sFat")
+
             AddMealScreen(
                 mealVm = mealVm, mealType = type, foodVm = foodVm,
+                scannedName = sName, scannedKcal = sKcal, scannedCarbs = sCarbs, scannedProtein = sProtein, scannedFat = sFat,
                 onBack = { navController.popBackStack() },
                 onOpenBarcode = { navController.navigate("barcode") }
             )
         }
 
+        // 🌟 수정된 부분 2: 바코드 스캔 화면 (진짜 데이터 보내기!)
         composable("barcode") {
             BarcodeScanScreen(
-                onFound = { _, _, _, _, _ -> navController.popBackStack() },
+                // 💡 드디어 가짜가 아닌 진짜 통신병이 물어온 6개의 데이터를 받습니다 (fat 포함)
+                onFound = { code, name, kcal, carbs, protein, fat ->
+                    navController.previousBackStackEntry?.savedStateHandle?.apply {
+                        set("sName", name)
+                        set("sKcal", kcal.toString())
+                        set("sCarbs", carbs.toString())
+                        set("sProtein", protein.toString())
+                        set("sFat", fat.toString()) // 🌟 진짜 지방 데이터도 주머니에 쏙!
+                    }
+                    navController.popBackStack()
+                },
                 onBack = { navController.popBackStack() }
             )
         }

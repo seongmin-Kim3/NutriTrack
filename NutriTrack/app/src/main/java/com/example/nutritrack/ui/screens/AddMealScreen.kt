@@ -47,19 +47,25 @@ fun AddMealScreen(
     mealVm: MealViewModel,
     mealType: String,
     foodVm: FoodViewModel,
+    // 🌟 1. AppNav에서 던져준 바코드 데이터를 받을 바구니(파라미터) 5개 추가!
+    scannedName: String? = null,
+    scannedKcal: String? = null,
+    scannedCarbs: String? = null,
+    scannedProtein: String? = null,
+    scannedFat: String? = null,
     onBack: () -> Unit,
     onOpenBarcode: () -> Unit
 ) {
     val context = LocalContext.current
 
-    // 🌟 중복 검사를 위해 현재 '내 음식'에 저장된 리스트를 실시간으로 불러옵니다.
     val savedFoods by foodVm.templates.collectAsState(initial = emptyList())
 
-    var foodName by remember { mutableStateOf("") }
-    var kcal by remember { mutableStateOf("") }
-    var carbs by remember { mutableStateOf("") }
-    var protein by remember { mutableStateOf("") }
-    var fat by remember { mutableStateOf("") }
+    // 🌟 2. 스캔된 데이터가 있으면 빈칸("") 대신 스캔된 데이터로 입력칸을 채웁니다!
+    var foodName by remember(scannedName) { mutableStateOf(scannedName ?: "") }
+    var kcal by remember(scannedKcal) { mutableStateOf(scannedKcal ?: "") }
+    var carbs by remember(scannedCarbs) { mutableStateOf(scannedCarbs ?: "") }
+    var protein by remember(scannedProtein) { mutableStateOf(scannedProtein ?: "") }
+    var fat by remember(scannedFat) { mutableStateOf(scannedFat ?: "") }
 
     var showSuggestions by remember { mutableStateOf(false) }
 
@@ -152,14 +158,11 @@ fun AddMealScreen(
 
             OutlinedButton(
                 onClick = {
-                    // 🌟 중복 검사 로직 추가! (이미 저장된 이름과 똑같은지 확인)
                     val isDuplicate = savedFoods.any { it.name == foodName }
 
                     if (isDuplicate) {
-                        // 중복이면 에러 알림 띄우고 저장 취소
                         Toast.makeText(context, "이미 내 음식에 저장된 메뉴입니다!", Toast.LENGTH_SHORT).show()
                     } else {
-                        // 중복이 아니면 정상적으로 저장
                         val safeKcal = kcal.toIntOrNull() ?: 0
                         val safeCarbs = carbs.toIntOrNull() ?: 0
                         val safeProtein = protein.toIntOrNull() ?: 0

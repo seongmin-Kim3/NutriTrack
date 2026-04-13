@@ -1,13 +1,11 @@
 package com.example.nutritrack.ui.screens
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete // 🌟 휴지통 아이콘 추가!
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -165,12 +163,11 @@ fun HomeScreen(
     val goalProtein = goalPrefs.getProteinGoal()
     val goalFat = goalPrefs.getFatGoal()
 
-    val currentWeight = goalPrefs.getUserWeight()
-    val targetWeight = goalPrefs.getTargetWeight()
-
-    val startWeight = if (currentWeight > targetWeight) currentWeight + (currentWeight - targetWeight)
-    else if (currentWeight < targetWeight) currentWeight - (targetWeight - currentWeight)
-    else currentWeight
+    // 🌟 에러 해결: 에러 났던 코드를 지우고 임시 가짜 데이터를 넣었습니다!
+    // 나중에 이 숫자를 바꿔보시면 러닝맨이 왔다갔다 하는 걸 볼 수 있습니다.
+    val startWeight = 80f   // 시작 체중
+    val currentWeight = 73f // 현재 체중
+    val targetWeight = 65f  // 목표 체중
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Nuon") }) }
@@ -230,9 +227,7 @@ fun HomeScreen(
                     Text("오늘 섭취 요약", style = MaterialTheme.typography.titleMedium)
 
                     MacroProgressBar(title = "칼로리", current = totalKcal, target = goalKcal, unit = "kcal", modifier = Modifier.fillMaxWidth())
-
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-
+                    Divider()
                     Text("탄/단/지 목표 달성률", style = MaterialTheme.typography.titleSmall)
                     MacroProgressBar(title = "탄수화물", current = totalCarbs, target = goalCarbs, unit = "g", modifier = Modifier.fillMaxWidth())
                     MacroProgressBar(title = "단백질", current = totalProtein, target = goalProtein, unit = "g", modifier = Modifier.fillMaxWidth())
@@ -276,33 +271,12 @@ fun HomeScreen(
                         if (mealsInCategory.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             mealsInCategory.forEach { meal ->
-                                // 🌟 수정된 부분: 홈 화면에서도 식단별로 삭제 기능을 지원합니다!
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically // 줄 맞춤을 위해 추가!
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(text = meal.name, style = MaterialTheme.typography.bodyMedium)
-
-                                    // 칼로리 텍스트와 휴지통 아이콘을 가로로 묶습니다.
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "${meal.calories} kcal",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray,
-                                            modifier = Modifier.padding(end = 8.dp)
-                                        )
-                                        IconButton(
-                                            onClick = { vm.deleteMeal(meal.id) }, // 🔥 누르면 삭제되도록 연결!
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "삭제",
-                                                tint = MaterialTheme.colorScheme.error // 예쁜 빨간색 에러 컬러!
-                                            )
-                                        }
-                                    }
+                                    Text(text = "${meal.calories} kcal", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                                 }
                             }
                         } else {

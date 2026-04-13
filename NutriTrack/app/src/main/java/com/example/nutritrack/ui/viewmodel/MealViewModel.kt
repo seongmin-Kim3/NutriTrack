@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nutritrack.data.entity.MealEntity
 import com.example.nutritrack.data.repo.MealRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Calendar
 
 class MealViewModel(
@@ -33,6 +36,23 @@ class MealViewModel(
     val todayMeals: StateFlow<List<MealEntity>> =
         repo.observeMealsBetween(startOfTodayMillis(), endOfTodayMillis())
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // 🌟 1. 달력에서 선택한 '특정 날짜'를 기억하는 변수!
+    private val _selectedDate = MutableStateFlow(LocalDate.now())
+    val selectedDate: StateFlow<LocalDate> = _selectedDate
+
+    // 🌟 2. 날짜가 바뀔 때마다 DB에서 그날의 데이터만 쏙 뽑아오는 필터망!
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val mealsForSelectedDate: StateFlow<List<MealEntity>> = _selectedDate.flatMapLatest { date ->
+        val startMillis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val endMillis = startMillis + (24 * 60 * 60 * 1000) - 1
+        repo.observeMealsBetween(startMillis, endMillis)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // 🌟 3. 달력에서 날짜를 누르면 호출될 리모컨 함수
+    fun setSelectedDate(date: LocalDate) {
+        _selectedDate.value = date
+    }
 
     fun insertMeal(entity: MealEntity) {
         viewModelScope.launch { repo.insert(entity) }

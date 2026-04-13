@@ -2,14 +2,17 @@ package com.example.nutritrack.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,25 +24,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.data.entity.MealEntity
+import com.example.nutritrack.data.network.OffProductResult
+import com.example.nutritrack.data.network.OpenFoodFactsClient
 import com.example.nutritrack.ui.viewmodel.FoodViewModel
 import com.example.nutritrack.ui.viewmodel.MealViewModel
-
-data class FoodInfo(val brand: String, val name: String, val kcal: Int, val carbs: Int, val protein: Int, val fat: Int)
-
-val foodDatabase = listOf(
-    FoodInfo("스타벅스", "아이스 아메리카노", 10, 2, 0, 0),
-    FoodInfo("스타벅스", "카페라떼", 110, 10, 6, 5),
-    FoodInfo("스타벅스", "바닐라 크림 콜드브루", 125, 11, 3, 8),
-    FoodInfo("맥도날드", "빅맥", 583, 46, 27, 33),
-    FoodInfo("맥도날드", "상하이 버거", 464, 48, 20, 20),
-    FoodInfo("서브웨이", "로스트 치킨 (위트)", 320, 45, 23, 5),
-    FoodInfo("서브웨이", "에그마요 (화이트)", 480, 44, 16, 26),
-    FoodInfo("일반", "닭가슴살 100g", 109, 0, 23, 2),
-    FoodInfo("일반", "현미밥 1공기", 320, 71, 7, 1),
-    FoodInfo("맘스터치", "싸이버거", 511, 60, 22, 21),
-    FoodInfo("교촌치킨", "허니콤보 (1조각)", 150, 12, 10, 7),
-    FoodInfo("일반", "연어 샐러드", 250, 10, 20, 15)
-)
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +36,6 @@ fun AddMealScreen(
     mealVm: MealViewModel,
     mealType: String,
     foodVm: FoodViewModel,
-    // 🌟 1. AppNav에서 던져준 바코드 데이터를 받을 바구니(파라미터) 5개 추가!
     scannedName: String? = null,
     scannedKcal: String? = null,
     scannedCarbs: String? = null,
@@ -57,10 +45,8 @@ fun AddMealScreen(
     onOpenBarcode: () -> Unit
 ) {
     val context = LocalContext.current
-
     val savedFoods by foodVm.templates.collectAsState(initial = emptyList())
 
-    // 🌟 2. 스캔된 데이터가 있으면 빈칸("") 대신 스캔된 데이터로 입력칸을 채웁니다!
     var foodName by remember(scannedName) { mutableStateOf(scannedName ?: "") }
     var kcal by remember(scannedKcal) { mutableStateOf(scannedKcal ?: "") }
     var carbs by remember(scannedCarbs) { mutableStateOf(scannedCarbs ?: "") }
@@ -68,13 +54,28 @@ fun AddMealScreen(
     var fat by remember(scannedFat) { mutableStateOf(scannedFat ?: "") }
 
     var showSuggestions by remember { mutableStateOf(false) }
+    var showSavedOnly by remember { mutableStateOf(false) }
 
-    val filteredFoods = remember(foodName) {
-        if (foodName.isBlank()) emptyList()
-        else foodDatabase.filter {
-            it.name.contains(foodName, ignoreCase = true) ||
-                    it.brand.contains(foodName, ignoreCase = true)
+    var apiSearchResults by remember { mutableStateOf<List<OffProductResult>>(emptyList()) }
+    var isSearching by remember { mutableStateOf(false) }
+
+    val filteredSavedFoods = remember(foodName, savedFoods) {
+        if (foodName.isBlank()) savedFoods
+        else savedFoods.filter { it.name.contains(foodName, ignoreCase = true) }
+    }
+
+    // 마법의 디바운스(Debounce) 로직
+    LaunchedEffect(foodName, showSavedOnly) {
+        if (showSavedOnly) return@LaunchedEffect
+        if (foodName.isBlank()) {
+            apiSearchResults = emptyList()
+            return@LaunchedEffect
         }
+
+        delay(500)
+        isSearching = true
+        apiSearchResults = OpenFoodFactsClient.searchByName(foodName)
+        isSearching = false
     }
 
     Scaffold(
@@ -96,54 +97,127 @@ fun AddMealScreen(
             modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
-                value = foodName,
-                onValueChange = {
-                    foodName = it
-                    showSuggestions = true
-                },
-                label = { Text("음식 또는 브랜드 검색 (예: 스타벅스)") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "검색") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = foodName,
+                    onValueChange = {
+                        foodName = it
+                        showSuggestions = true
+                        showSavedOnly = false
+                    },
+                    label = { Text(if (showSavedOnly) "내 음식 리스트" else "음식 또는 브랜드 검색") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "검색") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
 
-            AnimatedVisibility(visible = showSuggestions && filteredFoods.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = {
+                        showSavedOnly = !showSavedOnly
+                        showSuggestions = true
+                    },
+                    modifier = Modifier.background(
+                        if (showSavedOnly) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        RoundedCornerShape(8.dp)
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = "내 음식",
+                        tint = if (showSavedOnly) MaterialTheme.colorScheme.primary else Color.Gray
+                    )
+                }
+            }
+
+            // 🌟 수정된 부분: 결과가 0개라도 박스가 꺼지지 않고 유지됩니다!
+            AnimatedVisibility(visible = showSuggestions && (foodName.isNotBlank() || showSavedOnly)) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 250.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    LazyColumn {
-                        items(filteredFoods) { food ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        foodName = if (food.brand != "일반") "[${food.brand}] ${food.name}" else food.name
-                                        kcal = food.kcal.toString()
-                                        carbs = food.carbs.toString()
-                                        protein = food.protein.toString()
-                                        fat = food.fat.toString()
-                                        showSuggestions = false
-                                    }
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(text = food.name, fontWeight = FontWeight.Bold)
-                                    Text(text = food.brand, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                }
-                                Text(text = "${food.kcal} kcal", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    if (isSearching && !showSavedOnly) {
+                        // ⏳ 1. 검색 중일 때 (빙글빙글 로딩)
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                        }
+                    } else if (!showSavedOnly && apiSearchResults.isEmpty()) {
+                        // 🌟 2. 한국어 등으로 검색해서 서버에 결과가 없을 때 (안내 문구 띄우기)
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("🤔", fontSize = 32.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("검색 결과가 없습니다.", fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("영어로 검색하거나, 아래에 직접 입력해주세요!", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                             }
-                            Divider()
+                        }
+                    } else {
+                        // 3. 정상적으로 결과가 나왔을 때 리스트 보여주기
+                        LazyColumn {
+                            if (showSavedOnly) {
+                                // ⭐ 내 음식 리스트
+                                items(filteredSavedFoods) { savedItem ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                foodName = savedItem.name
+                                                kcal = savedItem.calories.toString()
+                                                carbs = savedItem.carbs.toString()
+                                                protein = savedItem.protein.toString()
+                                                fat = savedItem.fat.toString()
+                                                showSuggestions = false
+                                                showSavedOnly = false
+                                            }
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(text = savedItem.name, fontWeight = FontWeight.Bold)
+                                            Text(text = "탄 ${savedItem.carbs} 단 ${savedItem.protein} 지 ${savedItem.fat}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                        }
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(text = "${savedItem.calories} kcal", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 8.dp))
+                                            Icon(Icons.Default.Star, contentDescription = "저장됨", tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.LightGray))
+                                }
+                            } else {
+                                // 🌐 오픈 API 검색 결과 리스트
+                                items(apiSearchResults) { apiItem ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                foodName = apiItem.name ?: "이름 없음"
+                                                kcal = (apiItem.caloriesKcal ?: 0).toString()
+                                                carbs = (apiItem.carbsG ?: 0).toString()
+                                                protein = (apiItem.proteinG ?: 0).toString()
+                                                fat = (apiItem.fatG ?: 0).toString()
+                                                showSuggestions = false
+                                            }
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(text = apiItem.name ?: "이름 없음", fontWeight = FontWeight.Bold)
+                                            Text(text = "탄 ${apiItem.carbsG ?: 0} 단 ${apiItem.proteinG ?: 0} 지 ${apiItem.fatG ?: 0}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                        }
+                                        Text(text = "${apiItem.caloriesKcal ?: 0} kcal", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+                                    }
+                                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.LightGray))
+                                }
+                            }
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = kcal, onValueChange = { kcal = it }, label = { Text("칼로리(kcal)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
@@ -159,22 +233,10 @@ fun AddMealScreen(
             OutlinedButton(
                 onClick = {
                     val isDuplicate = savedFoods.any { it.name == foodName }
-
                     if (isDuplicate) {
                         Toast.makeText(context, "이미 내 음식에 저장된 메뉴입니다!", Toast.LENGTH_SHORT).show()
                     } else {
-                        val safeKcal = kcal.toIntOrNull() ?: 0
-                        val safeCarbs = carbs.toIntOrNull() ?: 0
-                        val safeProtein = protein.toIntOrNull() ?: 0
-                        val safeFat = fat.toIntOrNull() ?: 0
-
-                        foodVm.saveAsTemplate(
-                            name = foodName,
-                            calories = safeKcal,
-                            carbs = safeCarbs,
-                            protein = safeProtein,
-                            fat = safeFat
-                        )
+                        foodVm.saveAsTemplate(foodName, kcal.toIntOrNull() ?: 0, carbs.toIntOrNull() ?: 0, protein.toIntOrNull() ?: 0, fat.toIntOrNull() ?: 0)
                         Toast.makeText(context, "내 음식에 저장되었습니다!", Toast.LENGTH_SHORT).show()
                     }
                 },
@@ -186,21 +248,15 @@ fun AddMealScreen(
 
             Button(
                 onClick = {
-                    val safeKcal = kcal.toIntOrNull() ?: 0
-                    val safeCarbs = carbs.toIntOrNull() ?: 0
-                    val safeProtein = protein.toIntOrNull() ?: 0
-                    val safeFat = fat.toIntOrNull() ?: 0
-
                     val newMeal = MealEntity(
                         type = mealType,
                         name = foodName,
-                        calories = safeKcal,
-                        carbs = safeCarbs,
-                        protein = safeProtein,
-                        fat = safeFat,
+                        calories = kcal.toIntOrNull() ?: 0,
+                        carbs = carbs.toIntOrNull() ?: 0,
+                        protein = protein.toIntOrNull() ?: 0,
+                        fat = fat.toIntOrNull() ?: 0,
                         createdAtMillis = System.currentTimeMillis()
                     )
-
                     mealVm.insertMeal(newMeal)
                     onBack()
                 },

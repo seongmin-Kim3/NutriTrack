@@ -118,7 +118,7 @@ fun RecipeScreen(onBack: () -> Unit) {
     val generativeModel = remember {
         GenerativeModel(
             modelName = "gemini-2.5-flash",
-            apiKey = "AIzaSyA3L5oooCJpfLPgjlqnoyH4rmrPr72ALMc"
+            apiKey = ""
         )
     }
 

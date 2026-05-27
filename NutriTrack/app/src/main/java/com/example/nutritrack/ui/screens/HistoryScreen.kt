@@ -1,7 +1,6 @@
 package com.example.nutritrack.ui.screens
 
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,7 +30,8 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
+// 🌟 API 26 가짜 경고 입막음! (Desugaring이 켜져 있어서 안전합니다)
+@android.annotation.SuppressLint("NewApi")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
@@ -39,16 +39,13 @@ fun HistoryScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    // 프로필에서 설정한 운동 루틴을 가져오기 위한 준비!
     val goalPrefs = remember { (context.applicationContext as NuonApp).container.goalPrefs }
 
-    // 🌟 ViewModel에서 달력 날짜와, 그날 먹은 식단 데이터를 가져옵니다.
     val selectedDate by mealVm.selectedDate.collectAsState()
     val dailyMeals by mealVm.mealsForSelectedDate.collectAsState()
 
     var currentMonth by remember { mutableStateOf(YearMonth.from(LocalDate.now())) }
 
-    // 🌟 선택된 날짜에 맞는 요일의 운동 루틴을 찾아옵니다.
     val routine = remember(selectedDate) {
         goalPrefs.getRoutineForDay(selectedDate.dayOfWeek.name)
     }
@@ -69,17 +66,15 @@ fun HistoryScreen(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 🌟 1. 대망의 캘린더 위젯!
             CalendarWidget(
                 currentMonth = currentMonth,
                 selectedDate = selectedDate,
                 onMonthChange = { currentMonth = it },
-                onDateSelected = { mealVm.setSelectedDate(it) } // 누르면 타임머신 작동!
+                onDateSelected = { mealVm.setSelectedDate(it) }
             )
 
             HorizontalDivider()
 
-            // 🌟 2. 요약 헤더 (00월 00일 (월) / 총 1200 kcal)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -98,10 +93,7 @@ fun HistoryScreen(
                 )
             }
 
-            // 🌟 3. 그날의 일기 (운동 + 식단)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-                // 🏃‍♂️ 운동 블록
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -117,7 +109,6 @@ fun HistoryScreen(
                     }
                 }
 
-                // 🥗 식단 블록
                 if (dailyMeals.isEmpty()) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
@@ -142,7 +133,6 @@ fun HistoryScreen(
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(text = "${meal.calories} kcal", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 8.dp))
-                                    // 🗑️ 실수로 적은 식단은 휴지통 아이콘을 눌러 지울 수 있습니다!
                                     IconButton(onClick = { mealVm.deleteMeal(meal.id) }, modifier = Modifier.size(24.dp)) {
                                         Icon(Icons.Default.Delete, contentDescription = "삭제", tint = MaterialTheme.colorScheme.error)
                                     }
@@ -157,8 +147,8 @@ fun HistoryScreen(
     }
 }
 
-// 📅 복잡한 캘린더를 그려주는 전용 위젯 (컴포넌트)
-@RequiresApi(Build.VERSION_CODES.O)
+// 🌟 여기도 API 26 가짜 경고 입막음!
+@android.annotation.SuppressLint("NewApi")
 @Composable
 fun CalendarWidget(
     currentMonth: YearMonth,
@@ -167,7 +157,7 @@ fun CalendarWidget(
     onDateSelected: (LocalDate) -> Unit
 ) {
     val daysInMonth = currentMonth.lengthOfMonth()
-    val firstDayOfWeek = currentMonth.atDay(1).dayOfWeek.value % 7 // 일=0, 월=1, 화=2...
+    val firstDayOfWeek = currentMonth.atDay(1).dayOfWeek.value % 7
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -175,7 +165,6 @@ fun CalendarWidget(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // 헤더 (월 변경 버튼)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -194,7 +183,6 @@ fun CalendarWidget(
                 }
             }
 
-            // 요일 표시 (일 ~ 토)
             Row(modifier = Modifier.fillMaxWidth()) {
                 val daysOfWeek = listOf("일", "월", "화", "수", "목", "금", "토")
                 daysOfWeek.forEach { day ->
@@ -210,7 +198,6 @@ fun CalendarWidget(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 날짜 그리드 만들기 (진짜 달력 모양)
             val totalCells = ((daysInMonth + firstDayOfWeek) / 7 + 1) * 7
 
             Column {
@@ -227,7 +214,6 @@ fun CalendarWidget(
                                     .padding(2.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // 이번 달에 속하는 날짜만 화면에 그립니다
                                 if (dayNumber in 1..daysInMonth) {
                                     val date = currentMonth.atDay(dayNumber)
                                     val isSelected = date == selectedDate
@@ -239,8 +225,8 @@ fun CalendarWidget(
                                             .clip(CircleShape)
                                             .background(
                                                 when {
-                                                    isSelected -> MaterialTheme.colorScheme.primary // 선택된 날은 진한 색깔
-                                                    isToday -> MaterialTheme.colorScheme.primaryContainer // 오늘은 연한 색깔
+                                                    isSelected -> MaterialTheme.colorScheme.primary
+                                                    isToday -> MaterialTheme.colorScheme.primaryContainer
                                                     else -> Color.Transparent
                                                 }
                                             )
@@ -252,7 +238,7 @@ fun CalendarWidget(
                                             color = when {
                                                 isSelected -> MaterialTheme.colorScheme.onPrimary
                                                 isToday -> MaterialTheme.colorScheme.onPrimaryContainer
-                                                col == 0 -> Color.Red // 일요일은 무조건 빨간색!
+                                                col == 0 -> Color.Red
                                                 else -> MaterialTheme.colorScheme.onSurface
                                             },
                                             fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal

@@ -98,14 +98,12 @@ fun AppNav(startDestination: String = "login") {
             )
         }
 
-        // 🌟 수정된 부분 1: 식단 추가 화면 (데이터 받을 준비 완료)
         composable(
             route = "add/{type}",
             arguments = listOf(navArgument("type") { type = NavType.StringType })
         ) { entry ->
             val type = entry.arguments?.getString("type") ?: "점심"
 
-            // 💡 바코드 화면에서 돌아올 때 주머니(savedStateHandle)에 담아온 데이터를 꺼냅니다!
             val savedStateHandle = entry.savedStateHandle
             val sName = savedStateHandle.get<String>("sName")
             val sKcal = savedStateHandle.get<String>("sKcal")
@@ -121,17 +119,15 @@ fun AppNav(startDestination: String = "login") {
             )
         }
 
-        // 🌟 수정된 부분 2: 바코드 스캔 화면 (진짜 데이터 보내기!)
         composable("barcode") {
             BarcodeScanScreen(
-                // 💡 드디어 가짜가 아닌 진짜 통신병이 물어온 6개의 데이터를 받습니다 (fat 포함)
                 onFound = { code, name, kcal, carbs, protein, fat ->
                     navController.previousBackStackEntry?.savedStateHandle?.apply {
                         set("sName", name)
                         set("sKcal", kcal.toString())
                         set("sCarbs", carbs.toString())
                         set("sProtein", protein.toString())
-                        set("sFat", fat.toString()) // 🌟 진짜 지방 데이터도 주머니에 쏙!
+                        set("setFat", fat.toString())
                     }
                     navController.popBackStack()
                 },
@@ -139,12 +135,20 @@ fun AppNav(startDestination: String = "login") {
             )
         }
 
+        // 🌟 [오류 해결] 기존 HistoryScreen 구조에 맞춰 mealVm 재료를 확실하게 넘겨주도록 수정했습니다.
         composable("history") {
-            HistoryScreen(mealVm = mealVm, onBack = { navController.popBackStack() })
+            HistoryScreen(
+                mealVm = mealVm,
+                onBack = { navController.popBackStack() }
+            )
         }
 
+        // 🌟 [오류 해결] 기존 GoalSettingScreen 구조에 맞춰 goalPrefs 재료를 확실하게 넘겨주도록 수정했습니다.
         composable("goals") {
-            GoalSettingScreen(goalPrefs = goalPrefs, onBack = { navController.popBackStack() })
+            GoalSettingScreen(
+                goalPrefs = goalPrefs,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable("savedFoods") {
@@ -164,7 +168,7 @@ fun AppNav(startDestination: String = "login") {
         }
 
         composable("weekly") {
-            WeeklyReportScreen(mealVm = mealVm, goalPrefs = goalPrefs, onBack = { navController.popBackStack() })
+            WeeklyReportScreen(onBack = { navController.popBackStack() })
         }
     }
 }

@@ -25,7 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.data.entity.MealEntity
 import com.example.nutritrack.data.network.OffProductResult
-import com.example.nutritrack.data.network.OpenFoodFactsClient
+// 🌟 글로벌 API와 방금 만든 하이브리드 라우터를 모두 쓸 수 있게 임포트 추가!
+import com.example.nutritrack.data.network.HybridFoodSearchClient
 import com.example.nutritrack.ui.viewmodel.FoodViewModel
 import com.example.nutritrack.ui.viewmodel.MealViewModel
 import kotlinx.coroutines.delay
@@ -74,7 +75,8 @@ fun AddMealScreen(
 
         delay(500)
         isSearching = true
-        apiSearchResults = OpenFoodFactsClient.searchByName(foodName)
+        // 🌟 여기가 핵심입니다! 무조건 글로벌 API를 찌르지 않고 우리의 하이브리드 라우터로 넘깁니다!
+        apiSearchResults = HybridFoodSearchClient.smartSearchByName(foodName)
         isSearching = false
     }
 
@@ -131,7 +133,6 @@ fun AddMealScreen(
                 }
             }
 
-            // 🌟 수정된 부분: 결과가 0개라도 박스가 꺼지지 않고 유지됩니다!
             AnimatedVisibility(visible = showSuggestions && (foodName.isNotBlank() || showSavedOnly)) {
                 Card(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 250.dp),
@@ -139,12 +140,10 @@ fun AddMealScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     if (isSearching && !showSavedOnly) {
-                        // ⏳ 1. 검색 중일 때 (빙글빙글 로딩)
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(modifier = Modifier.size(32.dp))
                         }
                     } else if (!showSavedOnly && apiSearchResults.isEmpty()) {
-                        // 🌟 2. 한국어 등으로 검색해서 서버에 결과가 없을 때 (안내 문구 띄우기)
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("🤔", fontSize = 32.sp)
@@ -155,10 +154,8 @@ fun AddMealScreen(
                             }
                         }
                     } else {
-                        // 3. 정상적으로 결과가 나왔을 때 리스트 보여주기
                         LazyColumn {
                             if (showSavedOnly) {
-                                // ⭐ 내 음식 리스트
                                 items(filteredSavedFoods) { savedItem ->
                                     Row(
                                         modifier = Modifier
@@ -188,7 +185,6 @@ fun AddMealScreen(
                                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.LightGray))
                                 }
                             } else {
-                                // 🌐 오픈 API 검색 결과 리스트
                                 items(apiSearchResults) { apiItem ->
                                     Row(
                                         modifier = Modifier

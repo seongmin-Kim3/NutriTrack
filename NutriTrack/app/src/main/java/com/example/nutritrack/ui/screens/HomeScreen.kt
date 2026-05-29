@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.nutritrack.data.settings.GoalPrefs
 import com.example.nutritrack.ui.components.MacroProgressBar
 import com.example.nutritrack.ui.viewmodel.MealViewModel
@@ -156,12 +157,14 @@ fun WeightTrendChart(
 }
 
 // -----------------------------------------------------
-// 🌟 3. 메인 홈 화면 조립 (onWaterTrack 추가됨!)
+// 🌟 3. 메인 홈 화면 조립 (onWaterTrack 및 AI 조언 추가됨!)
 // -----------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     vm: MealViewModel,
+    aiVm: com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel, // AI 뷰모델 추가
+    waterVm: com.example.nutritrack.ui.viewmodel.WaterViewModel, // 수분 뷰모델 추가
     goalPrefs: GoalPrefs,
     onAddMealWithType: (String) -> Unit,
     onHistory: () -> Unit,
@@ -171,15 +174,26 @@ fun HomeScreen(
     onRecipeRecommend: () -> Unit,
     onFastingTimer: () -> Unit,
     onAiDiagnosis: () -> Unit,
-    onWaterTrack: () -> Unit // 🌟 수분 기록 화면으로 이동하는 길 추가 완료!
+    onWaterTrack: () -> Unit
 ) {
     val todayMeals by vm.todayMeals.collectAsState()
+    val dailyAiAdvice by aiVm.dailyAdvice.collectAsState()
+    val waterIntake by waterVm.waterIntake.collectAsState()
+    val waterGoal = waterVm.waterGoal
     val scrollState = rememberScrollState()
     var isFabExpanded by remember { mutableStateOf(false) }
 
     val today = LocalDate.now()
     val currentDate = remember { today.format(DateTimeFormatter.ofPattern("MM월 dd일 (E)", Locale.KOREAN)) }
     val currentDayOfWeek = today.dayOfWeek
+
+    // 오늘 식단이 바뀔 때마다 AI에게 조언 구하기
+    LaunchedEffect(todayMeals) {
+        if (todayMeals.isNotEmpty()) {
+            val routine = goalPrefs.getRoutineForDay(currentDayOfWeek.name)
+            aiVm.getDailyNutritionAdvice(todayMeals, "오늘 운동 루틴: $routine")
+        }
+    }
 
     val weeklyRoutine = remember(currentDate) {
         mapOf(
@@ -194,13 +208,7 @@ fun HomeScreen(
     }
 
     val todayRoutine = weeklyRoutine[currentDayOfWeek] ?: "휴식"
-    val aiDietTip = when {
-        todayRoutine.contains("하체") || todayRoutine.contains("등") || todayRoutine.contains("가슴") || todayRoutine.contains("대근육") -> "💡 대근육 운동($todayRoutine) 데이!\n운동 2시간 전에 복합 탄수화물(고구마, 오트밀 등)을 든든하게 섭취해 에너지를 꽉 채워주세요."
-        todayRoutine.contains("팔") || todayRoutine.contains("어깨") || todayRoutine.contains("삼두") || todayRoutine.contains("이두") -> "💡 소근육 위주 운동($todayRoutine) 데이!\n운동 직후 흡수가 빠른 단백질 보충에 신경 써주시면 근성장에 좋습니다."
-        todayRoutine.contains("유산소") -> "💡 체지방 태우는 유산소 데이!\n운동 전 가벼운 바나나 한 개 정도가 좋으며, 수분 섭취를 틈틈이 해주세요."
-        todayRoutine.contains("휴식") -> "💡 오늘은 휴식일입니다.\n근육이 푹 쉬면서 자랄 수 있도록 충분한 수면과 단백질 위주의 식단을 유지하세요."
-        else -> "💡 오늘도 화이팅입니다!\n운동 전후로 영양 섭취를 잊지 마세요."
-    }
+
 
     val totalKcal = remember(todayMeals) { todayMeals.sumOf { it.calories } }
     val totalCarbs = remember(todayMeals) { todayMeals.sumOf { it.carbs } }
@@ -273,11 +281,45 @@ fun HomeScreen(
             WeightGoalGauge(currentWeight = currentWeight, targetWeight = targetWeight, startWeight = startWeight, modifier = Modifier.fillMaxWidth())
             WeightTrendChart(weeklyData = realisticWeightData, modifier = Modifier.fillMaxWidth())
 
+            // 💧 수분 섭취 퀵 대시보드
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onWaterTrack,
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE1F5FE))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "💧 수분 섭취", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF0288D1))
+                        Text(text = "현재 $waterIntake ml / 목표 $waterGoal ml", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    }
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { (waterIntake.toFloat() / waterGoal).coerceIn(0f, 1f) },
+                            color = Color(0xFF29B6F6),
+                            trackColor = Color.White,
+                            strokeWidth = 6.dp,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text("💧", fontSize = 14.sp)
+                    }
+                }
+            }
+
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) { Text(text = "🏋️ 오늘의 운동: $todayRoutine", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer) }
+                    Row(verticalAlignment = Alignment.CenterVertically) { 
+                        Text(text = "✨ AI 맞춤 영양 조언 (v1)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = aiDietTip, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text(text = dailyAiAdvice, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "🏋️ 오늘 운동: $todayRoutine", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                 }
             }
 

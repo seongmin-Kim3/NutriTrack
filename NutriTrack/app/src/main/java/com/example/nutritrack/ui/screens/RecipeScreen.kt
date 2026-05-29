@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.NuonApp
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.RequestOptions
 import kotlinx.coroutines.launch
 
 // 🌟 [핵심 기능] 텍스트는 그대로 살리고, 링크만 쏙 빼서 예쁜 버튼으로!
@@ -117,8 +118,9 @@ fun RecipeScreen(onBack: () -> Unit) {
 
     val generativeModel = remember {
         GenerativeModel(
-            modelName = "gemini-2.5-flash",
-            apiKey = "AIzaSyATEuxW_RjsPR7JvraXXCtY3Eg1H9c73Zw"
+            modelName = "gemini-1.5-flash",
+            apiKey = "AQ.Ab8RN6KnAjxbfom7JWWxtU_aSeIcul6AhzZnuHZjXa1TJ-IC7A".trim(),
+            requestOptions = RequestOptions(apiVersion = "v1") // 🌟 여기도 v1으로 수정!
         )
     }
 
@@ -182,9 +184,15 @@ fun RecipeScreen(onBack: () -> Unit) {
                                         val result = generativeModel.generateContent(prompt).text ?: ""
                                         dietPlan = result.substringAfter("===식단===").substringBefore("===운동===").trim()
                                         exercisePlan = result.substringAfter("===운동===").trim()
-                                        currentStep = 1
+                                        if (dietPlan.isBlank() && exercisePlan.isBlank()) {
+                                            dietPlan = "AI가 유효한 응답을 생성하지 못했습니다. 다시 시도해주세요."
+                                        } else {
+                                            currentStep = 1
+                                        }
                                     } catch (e: Exception) {
-                                        dietPlan = "분석 중 오류가 발생했습니다."
+                                        // 🌟 어떤 에러인지 정확히 알 수 있도록 출력 형식을 바꿉니다.
+                                        dietPlan = "AI 에러 발생(${e.javaClass.simpleName}): ${e.message}"
+                                        android.util.Log.e("AI_DEBUG", "Recipe AI Error", e)
                                     } finally { isLoading = false }
                                 }
                             },

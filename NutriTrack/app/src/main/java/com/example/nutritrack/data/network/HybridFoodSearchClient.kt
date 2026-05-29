@@ -37,8 +37,13 @@ object HybridFoodSearchClient {
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 // 성공했을 때
                 val responseText = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("API_TEST", "✅ 정상 응답 데이터: $responseText")
-
+                // 만약 응답에 에러 메시지가 포함되어 있다면 (공공데이터 포털 특성)
+                if (responseText.contains("<returnReasonCode>") || responseText.contains("INVALID_REQUEST_PARAMETER_ERROR")) {
+                    Log.e("API_TEST", "❌ 서버 응답은 OK지만 내부 에러 발생: $responseText")
+                    return@withContext emptyList()
+                }
+                
+                Log.d("API_TEST", "✅ 정상 응답 데이터 추출 중...")
                 val jsonObject = JSONObject(responseText)
                 val body = jsonObject.optJSONObject("body")
                 val items = body?.optJSONArray("items")

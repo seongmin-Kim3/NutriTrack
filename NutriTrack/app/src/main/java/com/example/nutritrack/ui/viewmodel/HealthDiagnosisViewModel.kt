@@ -1,9 +1,11 @@
 package com.example.nutritrack.ui.viewmodel
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.RequestOptions
 import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,22 +14,28 @@ import kotlinx.coroutines.launch
 
 class HealthDiagnosisViewModel : ViewModel() {
 
-    // 🚨 여기에 구글 AI 스튜디오에서 발급받은 Gemini API 키를 넣으세요
-    private val apiKey = "AIzaSyATEuxW_RjsPR7JvraXXCtY3Eg1H9c73Zw"
+    // 🚨 발급받으신 AQ. 키의 공백을 자동으로 제거하도록 수정
+    private val apiKey = "AQ.Ab8RN6KnAjxbfom7JWWxtU_aSeIcul6AhzZnuHZjXa1TJ-IC7A".trim()
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
-        apiKey = apiKey
+        modelName = "gemini-1.5-flash-001", // 🌟 정식 버전 이름으로 변경
+        apiKey = apiKey,
+        requestOptions = RequestOptions(apiVersion = "v1")
     )
 
     private val _uiState = MutableStateFlow<DiagnosisUiState>(DiagnosisUiState.Initial)
     val uiState: StateFlow<DiagnosisUiState> = _uiState.asStateFlow()
 
+    private val _dailyAdvice = MutableStateFlow<String>("식단을 입력하면 AI 조언을 받을 수 있습니다.")
+    val dailyAdvice: StateFlow<String> = _dailyAdvice.asStateFlow()
+
     fun analyzeHealthData(bitmap: Bitmap) {
         _uiState.value = DiagnosisUiState.Loading
+        Log.d("AI_DEBUG", "🚀 건강 데이터 분석 시작 (이미지 포함)")
 
         viewModelScope.launch {
             try {
+                // ... (생략된 프롬프트 내용 유지) ...
                 val prompt = """
                     당신은 전문적인 퍼스널 트레이너이자 임상 영양사입니다.
                     첨부된 이미지는 사용자의 인바디(체성분 분석) 또는 건강검진 결과지입니다.
@@ -48,9 +56,44 @@ class HealthDiagnosisViewModel : ViewModel() {
                     }
                 )
 
-                _uiState.value = DiagnosisUiState.Success(response.text ?: "분석 결과를 가져올 수 없습니다.")
+                val resultText = response.text ?: "분석 결과를 가져올 수 없습니다."
+                Log.d("AI_DEBUG", "✅ AI 분석 성공: $resultText")
+                _uiState.value = DiagnosisUiState.Success(resultText)
             } catch (e: Exception) {
-                _uiState.value = DiagnosisUiState.Error(e.localizedMessage ?: "알 수 없는 오류가 발생했습니다.")
+                Log.e("AI_DEBUG", "❌ AI 분석 중 에러 발생: ${e.message}", e)
+                val userFriendlyMessage = when {
+                    e.message?.contains("API_KEY_INVALID") == true -> "API 키가 유효하지 않습니다. Google AI Studio에서 키를 확인해주세요."
+                    e.message?.contains("QUOTA_EXCEEDED") == true -> "API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+                    else -> e.localizedMessage ?: "알 수 없는 오류가 발생했습니다."
+                }
+                _uiState.value = DiagnosisUiState.Error(userFriendlyMessage)
+            }
+        }
+    }
+
+    fun getDailyNutritionAdvice(meals: List<com.example.nutritrack.data.entity.MealEntity>, goals: String) {
+        if (meals.isEmpty()) return
+        Log.d("AI_DEBUG", "🚀 일일 영양 조언 요청 중...")
+
+        viewModelScope.launch {
+            try {
+                val mealSummary = meals.joinToString(", ") { "${it.name}(${it.calories}kcal)" }
+                val prompt = """
+                    사용자의 오늘 식단: $mealSummary
+                    사용자의 목표/상황: $goals
+                    
+                    위 식단을 바탕으로 영양학적 조언을 딱 한 문장(50자 내외)으로 친절하게 한국어로 해주세요. 
+                    예: "오늘은 단백질이 부족하니 저녁에는 두부를 곁들여 보세요!"
+                """.trimIndent()
+
+                val response = generativeModel.generateContent(prompt)
+                val advice = response.text?.trim() ?: "맛있게 드셨나요? 꾸준한 기록이 중요합니다!"
+                Log.d("AI_DEBUG", "✅ 일일 조언 성공: $advice")
+                _dailyAdvice.value = advice
+            } catch (e: Exception) {
+                Log.e("AI_DEBUG", "❌ 일일 조언 에러 발생", e)
+                // 🌟 에러의 클래스 이름과 메시지를 모두 화면에 표시합니다.
+                _dailyAdvice.value = "에러: ${e.javaClass.simpleName} - ${e.message}"
             }
         }
     }

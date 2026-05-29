@@ -68,4 +68,11 @@ class GoalPrefs(context: Context) {
     fun getStartWeight(): Float {
         return prefs.getFloat("START_WEIGHT", getUserWeight())
     }
+
+    // 💧 수분 섭취량 관련
+    fun getWaterIntake(date: String): Int = prefs.getInt("water_$date", 0)
+    fun saveWaterIntake(date: String, amount: Int) {
+        prefs.edit().putInt("water_$date", amount).apply()
+    }
+    fun getWaterGoal(): Int = prefs.getInt("water_goal", 2000)
 }

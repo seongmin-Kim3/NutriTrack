@@ -16,6 +16,7 @@ import com.example.nutritrack.ui.viewmodel.AuthViewModel
 import com.example.nutritrack.ui.viewmodel.FoodViewModel
 import com.example.nutritrack.ui.viewmodel.MealViewModel
 import com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel
+import com.example.nutritrack.ui.viewmodel.WaterViewModel
 
 @Composable
 fun AppNav(startDestination: String = "login") {
@@ -30,6 +31,11 @@ fun AppNav(startDestination: String = "login") {
     val mealVm: MealViewModel = viewModel(factory = container.mealViewModelFactory)
     val foodVm: FoodViewModel = viewModel(factory = container.foodViewModelFactory)
     val aiDiagnosisVm: HealthDiagnosisViewModel = viewModel() // AI 뷰모델
+    val waterVm: WaterViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+            return WaterViewModel(goalPrefs) as T
+        }
+    })
 
     val authRepository = AuthRepository()
     val authViewModel = AuthViewModel(authRepository)
@@ -69,6 +75,8 @@ fun AppNav(startDestination: String = "login") {
         composable("home") {
             HomeScreen(
                 vm = mealVm,
+                aiVm = aiDiagnosisVm,
+                waterVm = waterVm,
                 goalPrefs = goalPrefs,
                 onAddMealWithType = { type -> navController.navigate("add/$type") },
                 onHistory = { navController.navigate("history") },
@@ -77,7 +85,8 @@ fun AppNav(startDestination: String = "login") {
                 onSavedFoods = { navController.navigate("savedFoods") },
                 onRecipeRecommend = { navController.navigate("recipe") },
                 onFastingTimer = { navController.navigate("fasting") },
-                onAiDiagnosis = { navController.navigate("aiDiagnosis") } // AI 버튼 동작 연결
+                onAiDiagnosis = { navController.navigate("aiDiagnosis") }, // AI 버튼 동작 연결
+                onWaterTrack = { navController.navigate("water") }
             )
         }
 
@@ -159,6 +168,10 @@ fun AppNav(startDestination: String = "login") {
         // 🌟 새로 추가된 AI 진단 화면 연결
         composable("aiDiagnosis") {
             HealthDiagnosisScreen(viewModel = aiDiagnosisVm, onBack = { navController.popBackStack() })
+        }
+
+        composable("water") {
+            WaterTrackingScreen(vm = waterVm, onBack = { navController.popBackStack() })
         }
     }
 }

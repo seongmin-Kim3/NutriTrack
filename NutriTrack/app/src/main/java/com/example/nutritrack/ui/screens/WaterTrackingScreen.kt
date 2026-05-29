@@ -17,10 +17,12 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WaterTrackingScreen(onBack: () -> Unit) {
-    // 🌟 하루 목표량 (2000ml)과 현재 마신 물의 양 상태 저장
-    var currentWater by remember { mutableIntStateOf(0) }
-    val dailyGoal = 2000
+fun WaterTrackingScreen(
+    vm: com.example.nutritrack.ui.viewmodel.WaterViewModel,
+    onBack: () -> Unit
+) {
+    val currentWater by vm.waterIntake.collectAsState()
+    val dailyGoal = vm.waterGoal
 
     // 🌟 물이 차오르는 부드러운 애니메이션
     val progress by animateFloatAsState(
@@ -93,21 +95,21 @@ fun WaterTrackingScreen(onBack: () -> Unit) {
             // 💧 2. 물 추가 버튼 3총사
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Button(
-                    onClick = { currentWater += 100 },
+                    onClick = { vm.addWater(100) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF81D4FA)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(50.dp)
                 ) { Text("+ 100ml", color = Color.Black, fontWeight = FontWeight.Bold) }
 
                 Button(
-                    onClick = { currentWater += 250 },
+                    onClick = { vm.addWater(250) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF29B6F6)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(50.dp)
                 ) { Text("+ 250ml", fontWeight = FontWeight.Bold) }
 
                 Button(
-                    onClick = { currentWater += 500 },
+                    onClick = { vm.addWater(500) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0288D1)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(50.dp)
@@ -117,7 +119,7 @@ fun WaterTrackingScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // 실수로 잘못 눌렀을 때를 대비한 초기화 버튼
-            TextButton(onClick = { currentWater = 0 }) {
+            TextButton(onClick = { vm.resetWater() }) {
                 Text("기록 초기화", color = Color.Gray)
             }
         }

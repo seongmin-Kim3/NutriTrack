@@ -57,5 +57,15 @@ class GoalPrefs(context: Context) {
             .putString("routine_${DayOfWeek.SATURDAY.name}", saturday)
             .putString("routine_${DayOfWeek.SUNDAY.name}", sunday)
             .apply()
+    } // 🌟 중요: 여기서 saveWeeklyRoutines 함수를 먼저 닫아줍니다!
+
+    // 🌟 시작 체중 저장하기 (이제 바깥으로 안전하게 빠져나왔습니다!)
+    fun setStartWeight(weight: Float) {
+        prefs.edit().putFloat("START_WEIGHT", weight).apply()
+    }
+
+    // 🌟 시작 체중 불러오기 (만약 앱을 처음 깔아서 저장된 게 없다면, 현재 체중을 기본값으로 가져옵니다)
+    fun getStartWeight(): Float {
+        return prefs.getFloat("START_WEIGHT", getUserWeight())
     }
 }

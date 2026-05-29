@@ -15,6 +15,7 @@ import com.example.nutritrack.ui.screens.*
 import com.example.nutritrack.ui.viewmodel.AuthViewModel
 import com.example.nutritrack.ui.viewmodel.FoodViewModel
 import com.example.nutritrack.ui.viewmodel.MealViewModel
+import com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel
 
 @Composable
 fun AppNav(startDestination: String = "login") {
@@ -28,6 +29,7 @@ fun AppNav(startDestination: String = "login") {
     val fastingPrefs = FastingPrefs(context)
     val mealVm: MealViewModel = viewModel(factory = container.mealViewModelFactory)
     val foodVm: FoodViewModel = viewModel(factory = container.foodViewModelFactory)
+    val aiDiagnosisVm: HealthDiagnosisViewModel = viewModel() // AI 뷰모델
 
     val authRepository = AuthRepository()
     val authViewModel = AuthViewModel(authRepository)
@@ -36,17 +38,12 @@ fun AppNav(startDestination: String = "login") {
         navController = navController,
         startDestination = startDestination
     ) {
-
-        // --- [인증 및 초기 설정 구간] ---
-
         composable("login") {
             LoginScreen(
                 authVm = authViewModel,
                 onLoginSuccess = {
                     val nextScreen = if (goalPrefs.isProfileSetup()) "home" else "setupProfile"
-                    navController.navigate(nextScreen) {
-                        popUpTo("login") { inclusive = true }
-                    }
+                    navController.navigate(nextScreen) { popUpTo("login") { inclusive = true } }
                 },
                 onNavigateToSignUp = { navController.navigate("signup") }
             )
@@ -64,14 +61,10 @@ fun AppNav(startDestination: String = "login") {
             SetupProfileScreen(
                 goalPrefs = goalPrefs,
                 onSetupComplete = {
-                    navController.navigate("home") {
-                        popUpTo("setupProfile") { inclusive = true }
-                    }
+                    navController.navigate("home") { popUpTo("setupProfile") { inclusive = true } }
                 }
             )
         }
-
-        // --- [메인 기능 구간] ---
 
         composable("home") {
             HomeScreen(
@@ -83,7 +76,8 @@ fun AppNav(startDestination: String = "login") {
                 onWeekly = { navController.navigate("weekly") },
                 onSavedFoods = { navController.navigate("savedFoods") },
                 onRecipeRecommend = { navController.navigate("recipe") },
-                onFastingTimer = { navController.navigate("fasting") }
+                onFastingTimer = { navController.navigate("fasting") },
+                onAiDiagnosis = { navController.navigate("aiDiagnosis") } // AI 버튼 동작 연결
             )
         }
 
@@ -103,7 +97,6 @@ fun AppNav(startDestination: String = "login") {
             arguments = listOf(navArgument("type") { type = NavType.StringType })
         ) { entry ->
             val type = entry.arguments?.getString("type") ?: "점심"
-
             val savedStateHandle = entry.savedStateHandle
             val sName = savedStateHandle.get<String>("sName")
             val sKcal = savedStateHandle.get<String>("sKcal")
@@ -127,7 +120,7 @@ fun AppNav(startDestination: String = "login") {
                         set("sKcal", kcal.toString())
                         set("sCarbs", carbs.toString())
                         set("sProtein", protein.toString())
-                        set("setFat", fat.toString())
+                        set("sFat", fat.toString())
                     }
                     navController.popBackStack()
                 },
@@ -135,20 +128,12 @@ fun AppNav(startDestination: String = "login") {
             )
         }
 
-        // 🌟 [오류 해결] 기존 HistoryScreen 구조에 맞춰 mealVm 재료를 확실하게 넘겨주도록 수정했습니다.
         composable("history") {
-            HistoryScreen(
-                mealVm = mealVm,
-                onBack = { navController.popBackStack() }
-            )
+            HistoryScreen(mealVm = mealVm, onBack = { navController.popBackStack() })
         }
 
-        // 🌟 [오류 해결] 기존 GoalSettingScreen 구조에 맞춰 goalPrefs 재료를 확실하게 넘겨주도록 수정했습니다.
         composable("goals") {
-            GoalSettingScreen(
-                goalPrefs = goalPrefs,
-                onBack = { navController.popBackStack() }
-            )
+            GoalSettingScreen(goalPrefs = goalPrefs, onBack = { navController.popBackStack() })
         }
 
         composable("savedFoods") {
@@ -168,7 +153,12 @@ fun AppNav(startDestination: String = "login") {
         }
 
         composable("weekly") {
-            WeeklyReportScreen(onBack = { navController.popBackStack() })
+            WeeklyReportScreen(mealVm = mealVm, goalPrefs = goalPrefs, onBack = { navController.popBackStack() })
+        }
+
+        // 🌟 새로 추가된 AI 진단 화면 연결
+        composable("aiDiagnosis") {
+            HealthDiagnosisScreen(viewModel = aiDiagnosisVm, onBack = { navController.popBackStack() })
         }
     }
 }

@@ -94,4 +94,9 @@ dependencies {
 
     // 🌟 구글 제미나이 AI 공식 라이브러리 추가!
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    // Google Gemini AI SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.6.0")
+
+    // 이미지 로딩을 위한 Coil 라이브러리 (사진 미리보기용)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

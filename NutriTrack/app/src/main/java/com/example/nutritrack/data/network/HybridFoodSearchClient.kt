@@ -11,7 +11,6 @@ import java.net.URLEncoder
 
 object HybridFoodSearchClient {
 
-    // 🌟 API 키를 BuildConfig를 통해 안전하게 가져옵니다.
     private val API_KEY = BuildConfig.FOOD_SAFETY_API_KEY.replace("\\s".toRegex(), "")
 
     private const val BASE_URL = "https://apis.data.go.kr/1471000/FoodNtrIrdntInfoService1/getFoodNtrItdntList1"

@@ -23,6 +23,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             NutriTrackTheme {
+                // 알림 채널 초기화
+                com.example.nutritrack.ui.components.NotificationHelper.createNotificationChannel(this)
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

@@ -63,7 +63,11 @@ fun SmartYoutubeItem(text: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeScreen(onBack: () -> Unit) {
+fun RecipeScreen(
+    shoppingVm: com.example.nutritrack.ui.viewmodel.ShoppingViewModel, // 장바구니 뷰모델 추가
+    onBack: () -> Unit,
+    onGoToShoppingList: () -> Unit // 장바구니 화면 이동 콜백
+) {
     val context = LocalContext.current
     val goalPrefs = remember { (context.applicationContext as NuonApp).container.goalPrefs }
     var height by remember { mutableStateOf("") }
@@ -78,7 +82,7 @@ fun RecipeScreen(onBack: () -> Unit) {
     val generativeModel = remember {
         GenerativeModel(
             modelName = "gemini-1.5-flash",
-            apiKey = "AQ.Ab8RN6KnAjxbfom7JWWxtU_aSeIcul6AhzZnuHZjXa1TJ-IC7A".trim(),
+            apiKey = "AQ.Ab8RN6Kx0N3NqYeovFwmtMhVhAzctp9bqfDq4_FP2YTx3o8viA".replace("\\s".toRegex(), ""),
             requestOptions = RequestOptions(apiVersion = "v1")
         )
     }
@@ -129,8 +133,37 @@ fun RecipeScreen(onBack: () -> Unit) {
                         }
                     }
                     1 -> {
-                        Text("🥗 추천 식단", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("🥗 추천 식단", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            TextButton(onClick = onGoToShoppingList) { Text("🛒 내 장바구니 보기") }
+                        }
+                        
                         SmartYoutubeItem(dietPlan)
+
+                        // 🌟 장바구니 빠른 추가 섹션
+                        var newItemName by remember { mutableStateOf("") }
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = newItemName,
+                                    onValueChange = { newItemName = it },
+                                    label = { Text("필요한 재료 담기", fontSize = 12.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = { if(newItemName.isNotBlank()) { shoppingVm.addItem(newItemName); newItemName = "" } },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) { Text("담기") }
+                            }
+                        }
+
                         Button(onClick = { currentStep = 2 }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) { Text("운동 계획 확인하기 ➡️") }
                     }
                     2 -> {

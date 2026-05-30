@@ -10,12 +10,14 @@ import com.example.nutritrack.data.entity.MealEntity
     entities = [
         MealEntity::class,
         FoodTemplateEntity::class,
-        FoodHistoryEntity::class
+        FoodHistoryEntity::class,
+        com.example.nutritrack.data.entity.ShoppingEntity::class
     ],
-    version = 1,
+    version = 2, // 버전 업그레이드
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun mealDao(): MealDao
     abstract fun foodDao(): FoodDao
+    abstract fun shoppingDao(): ShoppingDao
 }

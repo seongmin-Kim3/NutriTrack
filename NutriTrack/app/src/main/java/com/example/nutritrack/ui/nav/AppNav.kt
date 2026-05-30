@@ -17,6 +17,7 @@ import com.example.nutritrack.ui.viewmodel.FoodViewModel
 import com.example.nutritrack.ui.viewmodel.MealViewModel
 import com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel
 import com.example.nutritrack.ui.viewmodel.WaterViewModel
+import com.example.nutritrack.ui.viewmodel.ShoppingViewModel
 
 @Composable
 fun AppNav(startDestination: String = "login") {
@@ -36,6 +37,7 @@ fun AppNav(startDestination: String = "login") {
             return WaterViewModel(goalPrefs) as T
         }
     })
+    val shoppingVm: ShoppingViewModel = viewModel(factory = container.shoppingViewModelFactory)
 
     val authRepository = AuthRepository()
     val authViewModel = AuthViewModel(authRepository)
@@ -86,12 +88,25 @@ fun AppNav(startDestination: String = "login") {
                 onRecipeRecommend = { navController.navigate("recipe") },
                 onFastingTimer = { navController.navigate("fasting") },
                 onAiDiagnosis = { navController.navigate("aiDiagnosis") }, // AI 버튼 동작 연결
-                onWaterTrack = { navController.navigate("water") }
+                onWaterTrack = { navController.navigate("water") },
+                onNotificationSettings = { navController.navigate("notificationSettings") }
             )
         }
 
+        composable("notificationSettings") {
+            NotificationSettingsScreen(onBack = { navController.popBackStack() })
+        }
+
         composable("recipe") {
-            RecipeScreen(onBack = { navController.popBackStack() })
+            RecipeScreen(
+                shoppingVm = shoppingVm,
+                onBack = { navController.popBackStack() },
+                onGoToShoppingList = { navController.navigate("shoppingList") }
+            )
+        }
+
+        composable("shoppingList") {
+            ShoppingListScreen(vm = shoppingVm, onBack = { navController.popBackStack() })
         }
 
         composable("fasting") {

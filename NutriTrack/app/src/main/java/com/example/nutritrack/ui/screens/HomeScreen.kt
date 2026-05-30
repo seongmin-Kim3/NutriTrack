@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.data.settings.GoalPrefs
@@ -94,7 +93,7 @@ fun MealCategoryCard(
                     Text(text = meals.joinToString(", ") { it.name }, style = MaterialTheme.typography.bodySmall, color = Color.Gray, maxLines = 1)
                 }
             }
-            Text(text = "${calories} kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+            Text(text = "$calories kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.LightGray)
         }
     }
@@ -115,7 +114,8 @@ fun HomeScreen(
     onRecipeRecommend: () -> Unit,
     onFastingTimer: () -> Unit,
     onAiDiagnosis: () -> Unit,
-    onWaterTrack: () -> Unit
+    onWaterTrack: () -> Unit,
+    onNotificationSettings: () -> Unit
 ) {
     val selectedDate by vm.selectedDate.collectAsState()
     val todayMeals by vm.mealsForSelectedDate.collectAsState()
@@ -200,6 +200,12 @@ fun HomeScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(
+                        onClick = onNotificationSettings,
+                        modifier = Modifier.background(Color.White, CircleShape).size(44.dp)
+                    ) { 
+                        Icon(Icons.Default.Notifications, contentDescription = "알림 설정", tint = Color.Gray) 
+                    }
+                    IconButton(
                         onClick = onSavedFoods,
                         modifier = Modifier.background(Color.White, CircleShape).size(44.dp)
                     ) { 
@@ -254,7 +260,7 @@ fun HomeScreen(
                         
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(140.dp)) {
                             CircularProgressIndicator(progress = { 1f }, modifier = Modifier.fillMaxSize(), color = Color(0xFFF0F0F0), strokeWidth = 10.dp, strokeCap = StrokeCap.Round)
-                            CircularProgressIndicator(progress = { (totalKcal.toFloat() / goalKcal).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.primary, strokeWidth = 10.dp, strokeCap = StrokeCap.Round)
+                            CircularProgressIndicator(progress = { (totalKcal.toFloat() / goalKcal.coerceAtLeast(1)).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.primary, strokeWidth = 10.dp, strokeCap = StrokeCap.Round)
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(text = remainingKcal.toString(), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
                                 Text(text = "남음", style = MaterialTheme.typography.labelMedium, color = Color.Gray)

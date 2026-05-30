@@ -14,11 +14,11 @@ import kotlinx.coroutines.launch
 
 class HealthDiagnosisViewModel : ViewModel() {
 
-    // 🚨 발급받으신 AQ. 키의 공백을 자동으로 제거하도록 수정
-    private val apiKey = "AQ.Ab8RN6KnAjxbfom7JWWxtU_aSeIcul6AhzZnuHZjXa1TJ-IC7A".trim()
+    // 🚨 공백이나 줄바꿈을 완벽히 제거하기 위해 replace 사용
+    private val apiKey = "AQ.Ab8RN6Kx0N3NqYeovFwmtMhVhAzctp9bqfDq4_FP2YTx3o8viA".replace("\\s".toRegex(), "")
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash-001", // 🌟 정식 버전 이름으로 변경
+        modelName = "gemini-1.5-flash",
         apiKey = apiKey,
         requestOptions = RequestOptions(apiVersion = "v1")
     )

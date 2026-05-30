@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.data.settings.GoalPrefs
 import com.example.nutritrack.ui.viewmodel.MealViewModel
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -60,6 +62,21 @@ fun WeeklyReportScreen(
     val avgKcal = totalKcal / 7
     val goalKcal = goalPrefs.getKcalGoal()
 
+    // 🌟 AI 주간 분석 상태
+    var aiWeeklyAnalysis by remember { mutableStateOf("아래 버튼을 눌러 AI 주간 분석을 시작하세요!") }
+    var isAnalyzing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    
+    // AI 모델 설정
+    val aiViewModel: com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val generativeModel = remember {
+        com.google.ai.client.generativeai.GenerativeModel(
+            modelName = "gemini-1.5-flash",
+            apiKey = "AQ.Ab8RN6KnAjxbfom7JWWxtU_aSeIcul6AhzZnuHZjXa1TJ-IC7A".trim(),
+            requestOptions = com.google.ai.client.generativeai.type.RequestOptions(apiVersion = "v1")
+        )
+    }
+
     Scaffold(
         containerColor = Color(0xFFF8F9FA),
         topBar = {
@@ -77,7 +94,63 @@ fun WeeklyReportScreen(
             contentPadding = PaddingValues(vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // 🌟 1. 주간 요약 대시보드 카드
+            // 🌟 1. AI 주간 정밀 분석 섹션 (새로 추가!)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)) // 연한 보라색 AI 테마
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF9C27B0))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = "AI 주간 정밀 분석", fontWeight = FontWeight.Bold, color = Color(0xFF7B1FA2))
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        if (isAnalyzing) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
+                            Text(text = "AI가 지난 일주일을 꼼꼼히 살피고 있습니다...", style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            Text(text = aiWeeklyAnalysis, style = MaterialTheme.typography.bodyMedium, lineHeight = 24.sp)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = {
+                                    isAnalyzing = true
+                                    val dataSummary = daySummaries.joinToString("\n") { 
+                                        "${it.date}: ${it.kcal}kcal (탄${it.carbs} 단${it.protein} 지${it.fat})"
+                                    }
+                                    val prompt = """
+                                        사용자의 일주일 식단 요약:
+                                        $dataSummary
+                                        
+                                        사용자의 하루 목표 칼로리: $goalKcal kcal
+                                        
+                                        위 데이터를 바탕으로 이번 주의 영양 성적표를 작성해줘. 
+                                        1. 잘한 점 2. 아쉬운 점 3. 다음 주를 위한 핵심 팁 하나를 한국어로 친절하게 알려줘.
+                                    """.trimIndent()
+                                    
+                                    scope.launch {
+                                        try {
+                                            val response = generativeModel.generateContent(prompt)
+                                            aiWeeklyAnalysis = response.text ?: "분석 내용을 가져오지 못했습니다."
+                                        } catch (e: Exception) {
+                                            aiWeeklyAnalysis = "분석 중 오류 발생: ${e.localizedMessage}"
+                                        } finally { isAnalyzing = false }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0))
+                            ) {
+                                Text("✨ 주간 리포트 생성하기")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 🌟 2. 주간 요약 대시보드 카드
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

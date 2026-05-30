@@ -1,170 +1,111 @@
 package com.example.nutritrack.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.data.settings.GoalPrefs
-import com.example.nutritrack.ui.components.MacroProgressBar
 import com.example.nutritrack.ui.viewmodel.MealViewModel
-import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.abs
 
-// -----------------------------------------------------
-// 🌟 1. 체중 진행률 게이지
-// -----------------------------------------------------
 @Composable
-fun WeightGoalGauge(
-    currentWeight: Float,
-    targetWeight: Float,
-    startWeight: Float,
-    modifier: Modifier = Modifier
+fun MacroMiniItem(label: String, current: Int, goal: Int, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(50.dp)) {
+            CircularProgressIndicator(
+                progress = { 1f },
+                modifier = Modifier.fillMaxSize(),
+                color = color.copy(alpha = 0.2f),
+                strokeWidth = 4.dp,
+                strokeCap = StrokeCap.Round
+            )
+            CircularProgressIndicator(
+                progress = { (current.toFloat() / goal.coerceAtLeast(1)).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxSize(),
+                color = color,
+                strokeWidth = 4.dp,
+                strokeCap = StrokeCap.Round
+            )
+            Text(text = label.take(1), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = "${current}g", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Text(text = "/ ${goal}g", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MealCategoryCard(
+    title: String,
+    icon: String,
+    calories: Int,
+    meals: List<com.example.nutritrack.data.entity.MealEntity>,
+    onClick: () -> Unit
 ) {
-    val totalWeightToLose = abs(startWeight - targetWeight)
-    val currentLostWeight = abs(startWeight - currentWeight)
-
-    val targetProgress = if (totalWeightToLose == 0f) 0f
-    else (currentLostWeight / totalWeightToLose).coerceIn(0f, 1f)
-
-    var animationPlayed by remember { mutableStateOf(false) }
-    LaunchedEffect(key1 = true) { animationPlayed = true }
-
-    val progress by animateFloatAsState(
-        targetValue = if (animationPlayed) targetProgress else 0f,
-        animationSpec = tween(durationMillis = 1500),
-        label = "weightProgress"
-    )
-
-    val gaugeColor = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
-    val runnerIcon = Icons.Default.Face
-
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(text = "🏃 목표 체중까지 달리는 중!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.CenterStart) {
-                Canvas(modifier = Modifier.fillMaxWidth().height(10.dp)) { drawLine(color = trackColor, start = Offset(0f, size.height / 2), end = Offset(size.width, size.height / 2), strokeWidth = size.height, cap = StrokeCap.Round) }
-                Canvas(modifier = Modifier.fillMaxWidth().height(10.dp)) { drawLine(color = gaugeColor, start = Offset(0f, size.height / 2), end = Offset(size.width * progress, size.height / 2), strokeWidth = size.height, cap = StrokeCap.Round) }
-                Icon(painter = rememberVectorPainter(image = runnerIcon), contentDescription = "러닝맨", tint = gaugeColor, modifier = Modifier.size(36.dp).offset(x = (modifier.fillMaxWidth().let { 280.dp } * progress) - 18.dp, y = (-14).dp))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = icon, fontSize = 24.sp)
             }
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "시작: ${startWeight}kg", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                Text(text = "현재: ${currentWeight}kg", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.ExtraBold, color = gaugeColor)
-                Text(text = "목표: ${targetWeight}kg", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (meals.isEmpty()) {
+                    Text(text = "기록된 식사 없음", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                } else {
+                    Text(text = meals.joinToString(", ") { it.name }, style = MaterialTheme.typography.bodySmall, color = Color.Gray, maxLines = 1)
+                }
             }
+            Text(text = "${calories} kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.LightGray)
         }
     }
 }
 
-// -----------------------------------------------------
-// 🌟 2. 꺾은선 그래프
-// -----------------------------------------------------
-@Composable
-fun WeightTrendChart(
-    weeklyData: List<Pair<String, Float>>,
-    modifier: Modifier = Modifier
-) {
-    val maxWeight = weeklyData.maxOf { it.second } + 0.5f
-    val minWeight = weeklyData.minOf { it.second } - 0.5f
-    val range = maxWeight - minWeight
-
-    val lineColor = MaterialTheme.colorScheme.primary
-    val gradientBrush = Brush.verticalGradient(colors = listOf(lineColor.copy(alpha = 0.3f), Color.Transparent))
-
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "📉 체중 변화 추이", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(modifier = Modifier.fillMaxWidth().height(120.dp)) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val width = size.width
-                    val height = size.height
-                    val xStep = width / (weeklyData.size - 1)
-
-                    val path = Path()
-                    val fillPath = Path()
-                    val points = mutableListOf<Offset>()
-
-                    weeklyData.forEachIndexed { index, data ->
-                        val x = index * xStep
-                        val normalizedY = (data.second - minWeight) / range
-                        val y = height - (normalizedY * height)
-                        val offset = Offset(x, y)
-                        points.add(offset)
-
-                        if (index == 0) {
-                            path.moveTo(x, y)
-                            fillPath.moveTo(x, y)
-                        } else {
-                            path.lineTo(x, y)
-                            fillPath.lineTo(x, y)
-                        }
-                    }
-
-                    fillPath.lineTo(width, height)
-                    fillPath.lineTo(0f, height)
-                    fillPath.close()
-
-                    drawPath(path = fillPath, brush = gradientBrush)
-                    drawPath(path = path, color = lineColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
-
-                    points.forEach { point ->
-                        drawCircle(color = Color.White, radius = 5.dp.toPx(), center = point)
-                        drawCircle(color = lineColor, radius = 5.dp.toPx(), center = point, style = Stroke(width = 2.dp.toPx()))
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                weeklyData.forEach { data ->
-                    Text(text = data.first, style = MaterialTheme.typography.labelSmall, color = Color.Gray, textAlign = TextAlign.Center)
-                }
-            }
-        }
-    }
-}
-
-// -----------------------------------------------------
-// 🌟 3. 메인 홈 화면 조립 (onWaterTrack 및 AI 조언 추가됨!)
-// -----------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     vm: MealViewModel,
-    aiVm: com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel, // AI 뷰모델 추가
-    waterVm: com.example.nutritrack.ui.viewmodel.WaterViewModel, // 수분 뷰모델 추가
+    aiVm: com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel,
+    waterVm: com.example.nutritrack.ui.viewmodel.WaterViewModel,
     goalPrefs: GoalPrefs,
     onAddMealWithType: (String) -> Unit,
     onHistory: () -> Unit,
@@ -176,199 +117,277 @@ fun HomeScreen(
     onAiDiagnosis: () -> Unit,
     onWaterTrack: () -> Unit
 ) {
-    val todayMeals by vm.todayMeals.collectAsState()
+    val selectedDate by vm.selectedDate.collectAsState()
+    val todayMeals by vm.mealsForSelectedDate.collectAsState()
+    
     val dailyAiAdvice by aiVm.dailyAdvice.collectAsState()
     val waterIntake by waterVm.waterIntake.collectAsState()
     val waterGoal = waterVm.waterGoal
     val scrollState = rememberScrollState()
     var isFabExpanded by remember { mutableStateOf(false) }
 
-    val today = LocalDate.now()
-    val currentDate = remember { today.format(DateTimeFormatter.ofPattern("MM월 dd일 (E)", Locale.KOREAN)) }
-    val currentDayOfWeek = today.dayOfWeek
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    )
 
-    // 오늘 식단이 바뀔 때마다 AI에게 조언 구하기
-    LaunchedEffect(todayMeals) {
-        if (todayMeals.isNotEmpty()) {
-            val routine = goalPrefs.getRoutineForDay(currentDayOfWeek.name)
-            aiVm.getDailyNutritionAdvice(todayMeals, "오늘 운동 루틴: $routine")
-        }
-    }
-
-    val weeklyRoutine = remember(currentDate) {
-        mapOf(
-            DayOfWeek.MONDAY to goalPrefs.getRoutineForDay(DayOfWeek.MONDAY.name),
-            DayOfWeek.TUESDAY to goalPrefs.getRoutineForDay(DayOfWeek.TUESDAY.name),
-            DayOfWeek.WEDNESDAY to goalPrefs.getRoutineForDay(DayOfWeek.WEDNESDAY.name),
-            DayOfWeek.THURSDAY to goalPrefs.getRoutineForDay(DayOfWeek.THURSDAY.name),
-            DayOfWeek.FRIDAY to goalPrefs.getRoutineForDay(DayOfWeek.FRIDAY.name),
-            DayOfWeek.SATURDAY to goalPrefs.getRoutineForDay(DayOfWeek.SATURDAY.name),
-            DayOfWeek.SUNDAY to goalPrefs.getRoutineForDay(DayOfWeek.SUNDAY.name)
-        )
-    }
-
-    val todayRoutine = weeklyRoutine[currentDayOfWeek] ?: "휴식"
-
-
-    val totalKcal = remember(todayMeals) { todayMeals.sumOf { it.calories } }
-    val totalCarbs = remember(todayMeals) { todayMeals.sumOf { it.carbs } }
-    val totalProtein = remember(todayMeals) { todayMeals.sumOf { it.protein } }
-    val totalFat = remember(todayMeals) { todayMeals.sumOf { it.fat } }
-    val goalKcal = goalPrefs.getKcalGoal()
-    val goalCarbs = goalPrefs.getCarbsGoal()
-    val goalProtein = goalPrefs.getProteinGoal()
-    val goalFat = goalPrefs.getFatGoal()
-
-    val currentWeight = goalPrefs.getUserWeight()
-    val targetWeight = goalPrefs.getTargetWeight()
-    val startWeight = goalPrefs.getStartWeight()
-
-    val realisticWeightData = remember(startWeight, currentWeight) {
-        val formatter = DateTimeFormatter.ofPattern("M/d")
-        val diff = startWeight - currentWeight
-        val estimatedDaysPassed = (abs(diff) / 0.5f * 7).toLong().coerceAtLeast(14L)
-        val calculatedStartDate = today.minusDays(estimatedDaysPassed)
-        val stepDays = estimatedDaysPassed / 6
-        val realisticPattern = listOf(0f, 0.15f, 0.35f, 0.30f, 0.65f, 0.85f, 1f)
-
-        List(7) { i ->
-            val pointDate = if (i == 0) calculatedStartDate else if (i == 6) today else calculatedStartDate.plusDays(stepDays * i)
-            val dateLabel = when (i) {
-                0 -> "시작\n${pointDate.format(formatter)}"
-                6 -> "오늘\n${pointDate.format(formatter)}"
-                else -> pointDate.format(formatter)
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                        vm.setSelectedDate(date)
+                    }
+                    showDatePicker = false
+                }) { Text("확인") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("취소") }
             }
-            val simulatedWeight = startWeight - (diff * realisticPattern[i])
-            dateLabel to (Math.round(simulatedWeight * 10f) / 10f)
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
+
+    val dateLabel = remember(selectedDate) {
+        val today = LocalDate.now()
+        when (selectedDate) {
+            today -> "오늘"
+            today.minusDays(1) -> "어제"
+            else -> selectedDate.format(DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KOREAN))
+        }
+    }
+    
+    val totalKcal = remember(todayMeals) { todayMeals.sumOf { it.calories } }
+    val goalKcal = goalPrefs.getKcalGoal()
+    val remainingKcal = (goalKcal - totalKcal).coerceAtLeast(0)
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Nuon") }) },
+        containerColor = Color(0xFFF8F9FA),
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
                 AnimatedVisibility(visible = isFabExpanded) {
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 16.dp)) {
-                        // 🌟 버튼을 누르면 수분 기록 화면(onWaterTrack)으로 이동하도록 수정 완료!
-                        ExtendedFloatingActionButton(
-                            onClick = { isFabExpanded = false; onWaterTrack() },
-                            icon = { Text("💧") },
-                            text = { Text("수분 기록하기") },
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
-                        ExtendedFloatingActionButton(onClick = { isFabExpanded = false; onGoals() }, icon = { Text("⚖️") }, text = { Text("오늘 체중 갱신") }, containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                        ExtendedFloatingActionButton(onClick = { isFabExpanded = false; onAddMealWithType("간식") }, icon = { Text("🍚") }, text = { Text("빠른 식사 추가") }, containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        ExtendedFloatingActionButton(onClick = { isFabExpanded = false; onWaterTrack() }, icon = { Text("💧") }, text = { Text("수분") })
+                        ExtendedFloatingActionButton(onClick = { isFabExpanded = false; onGoals() }, icon = { Text("⚖️") }, text = { Text("체중") })
                     }
                 }
-                FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
-                    Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = "기록 메뉴 열기")
+                FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White) {
+                    Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = null)
                 }
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(horizontal = 16.dp).verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "오늘: $currentDate", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = onHistory, modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) { Text("기록 보기", style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center) }
-                FilledTonalButton(onClick = onSavedFoods, modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) { Text("내 음식", style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center) }
-                FilledTonalButton(onClick = onWeekly, modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) { Text("주간 리포트", style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center) }
+        Column(
+            modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(scrollState).padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            // 상단 인사말 및 날짜 선택
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(text = "안녕하세요!", style = MaterialTheme.typography.titleSmall, color = Color.Gray)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { showDatePicker = true }
+                    ) {
+                        Text(text = dateLabel, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    IconButton(
+                        onClick = onSavedFoods,
+                        modifier = Modifier.background(Color.White, CircleShape).size(44.dp)
+                    ) { 
+                        Icon(Icons.Default.Star, contentDescription = "내 음식", tint = Color(0xFFFFD700)) 
+                    }
+                    IconButton(
+                        onClick = onWeekly,
+                        modifier = Modifier.background(Color.White, CircleShape).size(44.dp)
+                    ) { 
+                        Icon(Icons.Default.DateRange, contentDescription = "주간 리포트", tint = MaterialTheme.colorScheme.primary) 
+                    }
+                }
             }
 
-            FilledTonalButton(onClick = onAiDiagnosis, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("🤖 AI 인바디 / 건강검진 분석하기", fontWeight = FontWeight.Bold) }
-
-            WeightGoalGauge(currentWeight = currentWeight, targetWeight = targetWeight, startWeight = startWeight, modifier = Modifier.fillMaxWidth())
-            WeightTrendChart(weeklyData = realisticWeightData, modifier = Modifier.fillMaxWidth())
-
-            // 💧 수분 섭취 퀵 대시보드
+            // 1. 칼로리 메인 대시보드
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onWaterTrack,
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE1F5FE))
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    // 🌟 목표 달성 상태 칩 추가
+                    val isGoalMet = totalKcal in (goalKcal - 100)..(goalKcal + 100)
+                    val statusText = when {
+                        totalKcal == 0 -> "기록을 시작해보세요!"
+                        isGoalMet -> "축하합니다! 목표를 달성했어요 🎉"
+                        totalKcal > goalKcal + 100 -> "목표 칼로리를 초과했어요 ⚠️"
+                        else -> "조금 더 드셔도 괜찮아요 👍"
+                    }
+                    val statusColor = if (isGoalMet) Color(0xFF66BB6A) else if (totalKcal > goalKcal + 100) Color(0xFFEF5350) else Color.Gray
+
+                    Surface(
+                        color = statusColor.copy(alpha = 0.1f),
+                        shape = CircleShape,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = statusText,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = statusColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = totalKcal.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(text = "섭취", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
+                        
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(140.dp)) {
+                            CircularProgressIndicator(progress = { 1f }, modifier = Modifier.fillMaxSize(), color = Color(0xFFF0F0F0), strokeWidth = 10.dp, strokeCap = StrokeCap.Round)
+                            CircularProgressIndicator(progress = { (totalKcal.toFloat() / goalKcal).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.primary, strokeWidth = 10.dp, strokeCap = StrokeCap.Round)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = remainingKcal.toString(), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
+                                Text(text = "남음", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            }
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = goalKcal.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(text = "목표", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HorizontalDivider(color = Color(0xFFF5F5F5))
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        MacroMiniItem("탄수화물", todayMeals.sumOf { it.carbs }, goalPrefs.getCarbsGoal(), Color(0xFFFFA726))
+                        MacroMiniItem("단백질", todayMeals.sumOf { it.protein }, goalPrefs.getProteinGoal(), Color(0xFF66BB6A))
+                        MacroMiniItem("지방", todayMeals.sumOf { it.fat }, goalPrefs.getFatGoal(), Color(0xFFEF5350))
+                    }
+                }
+            }
+
+            // AI 조언
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF2E7D32))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = dailyAiAdvice, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1B5E20))
+                }
+            }
+
+            // AI 레시피 추천 카드
+            OutlinedCard(
+                onClick = onRecipeRecommend,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "💧 수분 섭취", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF0288D1))
-                        Text(text = "현재 $waterIntake ml / 목표 $waterGoal ml", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "👨‍🍳", fontSize = 24.sp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(text = "맞춤 식단 & 레시피", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(text = "AI가 제안하는 오늘 최고의 메뉴", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
                     }
-                    Box(contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            progress = { (waterIntake.toFloat() / waterGoal).coerceIn(0f, 1f) },
-                            color = Color(0xFF29B6F6),
-                            trackColor = Color.White,
-                            strokeWidth = 6.dp,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Text("💧", fontSize = 14.sp)
-                    }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) { 
-                        Text(text = "✨ AI 맞춤 영양 조언 (v1)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = dailyAiAdvice, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "🏋️ 오늘 운동: $todayRoutine", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+            // 2. 식사 카테고리
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "식사 기록", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                TextButton(onClick = onHistory) {
+                    Text(text = "전체보기", style = MaterialTheme.typography.labelLarge)
                 }
             }
-
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("오늘 섭취 요약", style = MaterialTheme.typography.titleMedium)
-                    MacroProgressBar(title = "칼로리", current = totalKcal, target = goalKcal, unit = "kcal", modifier = Modifier.fillMaxWidth())
-                    Divider()
-                    Text("탄/단/지 목표 달성률", style = MaterialTheme.typography.titleSmall)
-                    MacroProgressBar(title = "탄수화물", current = totalCarbs, target = goalCarbs, unit = "g", modifier = Modifier.fillMaxWidth())
-                    MacroProgressBar(title = "단백질", current = totalProtein, target = goalProtein, unit = "g", modifier = Modifier.fillMaxWidth())
-                    MacroProgressBar(title = "지방", current = totalFat, target = goalFat, unit = "g", modifier = Modifier.fillMaxWidth())
-                }
+            
+            val categories = listOf("아침" to "🍳", "점심" to "🍱", "저녁" to "🥗", "간식" to "🍎")
+            categories.forEach { (name, emoji) ->
+                val meals = todayMeals.filter { it.type == name }
+                MealCategoryCard(
+                    title = name,
+                    icon = emoji,
+                    calories = meals.sumOf { it.calories },
+                    meals = meals,
+                    onClick = { onAddMealWithType(name) }
+                )
             }
 
-            val mealCategories = listOf("아침", "점심", "저녁", "간식")
-            mealCategories.forEach { category ->
-                val mealsInCategory = todayMeals.filter { it.type == category }
-                val categoryCalories = mealsInCategory.sumOf { it.calories }
-
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))) {
+            // 3. 수분 및 단식
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Card(
+                    modifier = Modifier.weight(1f).clickable { onWaterTrack() },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE1F5FE))
+                ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = category, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "${categoryCalories} kcal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp))
-                                IconButton(onClick = { onAddMealWithType(category) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Add, contentDescription = "$category 추가", tint = MaterialTheme.colorScheme.primary) }
-                            }
-                        }
-                        if (mealsInCategory.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            mealsInCategory.forEach { meal ->
-                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(text = meal.name, style = MaterialTheme.typography.bodyMedium)
-                                    Text(text = "${meal.calories} kcal", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                }
-                            }
-                        } else {
-                            Text("기록된 식사가 없습니다.", style = MaterialTheme.typography.bodySmall, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
-                        }
+                        Text(text = "💧 수분", fontWeight = FontWeight.Bold, color = Color(0xFF0288D1))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = "$waterIntake / $waterGoal ml", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                Card(
+                    modifier = Modifier.weight(1f).clickable { onFastingTimer() },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = "⏳ 단식", fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = "타이머 확인", style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButton(onClick = onGoals, modifier = Modifier.fillMaxWidth()) { Text("목표 및 루틴 설정") }
-            OutlinedButton(onClick = onRecipeRecommend, modifier = Modifier.fillMaxWidth()) { Text("👨‍🍳 맞춤 식단 & 레시피 추천받기") }
-            OutlinedButton(onClick = onFastingTimer, modifier = Modifier.fillMaxWidth()) { Text("⏳ 16:8 간헐적 단식 타이머") }
-            Spacer(modifier = Modifier.height(60.dp))
+            // AI 진단 버튼
+            Button(
+                onClick = onAiDiagnosis,
+                modifier = Modifier.fillMaxWidth().height(60.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Icon(Icons.Default.Search, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("AI 인바디 분석기 실행", fontWeight = FontWeight.Bold)
+            }
+
+            // 목표 설정 버튼
+            OutlinedButton(
+                onClick = onGoals,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("목표 및 프로필 설정 수정", style = MaterialTheme.typography.labelLarge)
+            }
+            
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }

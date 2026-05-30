@@ -1,13 +1,15 @@
 package com.example.nutritrack.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,120 +22,98 @@ fun FastingScreen(
     fastingPrefs: FastingPrefs,
     onBack: () -> Unit
 ) {
-    // 상태 관리
     var isFasting by remember { mutableStateOf(fastingPrefs.isFasting()) }
     var startTime by remember { mutableStateOf(fastingPrefs.getStartTime()) }
     var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
 
-    // 1초마다 시간 업데이트하는 코루틴 마법
     LaunchedEffect(isFasting) {
         while (isFasting) {
             currentTime = System.currentTimeMillis()
-            delay(1000L) // 1초 대기
+            delay(1000L)
         }
     }
 
-    // 시간 계산 로직
-    val targetFastingTimeMs = 16 * 60 * 60 * 1000L // 16시간을 밀리초로 변환
+    val targetFastingTimeMs = 16 * 60 * 60 * 1000L
     val elapsedMs = if (isFasting) currentTime - startTime else 0L
     val remainingMs = maxOf(0L, targetFastingTimeMs - elapsedMs)
-
-    // 진행률 계산 (0.0 ~ 1.0)
     val progress = if (isFasting) (elapsedMs.toFloat() / targetFastingTimeMs.toFloat()).coerceIn(0f, 1f) else 0f
 
-    // 00:00:00 포맷팅 함수
     fun formatTime(ms: Long): String {
         val totalSeconds = ms / 1000
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-        val seconds = totalSeconds % 60
-        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+        val h = totalSeconds / 3600
+        val m = (totalSeconds % 3600) / 60
+        val s = totalSeconds % 60
+        return String.format("%02d:%02d:%02d", h, m, s)
     }
 
     Scaffold(
+        containerColor = Color(0xFFF8F9FA),
         topBar = {
-            TopAppBar(
-                title = { Text("간헐적 단식 타이머 (16:8)") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "뒤로가기") }
-                }
+            CenterAlignedTopAppBar(
+                title = { Text("단식 타이머", fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(40.dp)
         ) {
-            // 🌟 원형 프로그레스 바 영역
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(280.dp)
-            ) {
-                // 배경 원 (회색)
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 🌟 럭셔리 서클 타이머
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
                 CircularProgressIndicator(
-                    progress = 1f,
+                    progress = { 1f },
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeWidth = 16.dp
+                    color = Color(0xFFEEEEEE),
+                    strokeWidth = 20.dp,
+                    strokeCap = StrokeCap.Round
                 )
-                // 차오르는 원 (파란색)
                 CircularProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 16.dp
+                    color = if (isFasting) Color(0xFFFFA726) else MaterialTheme.colorScheme.primary,
+                    strokeWidth = 20.dp,
+                    strokeCap = StrokeCap.Round
                 )
 
-                // 중앙 텍스트
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = if (isFasting) "단식 진행 중 🔥" else "준비 완료 🍽️",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = formatTime(elapsedMs),
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = if (isFasting) "단식 중 🔥" else "단식 준비", style = MaterialTheme.typography.titleLarge, color = Color.Gray)
+                    Text(text = formatTime(elapsedMs), fontSize = 54.sp, fontWeight = FontWeight.Black)
                     if (isFasting) {
-                        Text(text = "남은 시간: ${formatTime(remainingMs)}", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = "남은 시간: ${formatTime(remainingMs)}", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFFFA726))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("💡 단식 팁", fontWeight = FontWeight.Bold)
+                    Text("단식 중에는 물, 블랙 커피, 차(tea)를 충분히 섭취하는 것이 도움이 됩니다.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+            }
 
-            // 시작/종료 버튼
             Button(
                 onClick = {
-                    if (isFasting) {
-                        // 단식 종료
-                        fastingPrefs.setFasting(false)
-                        isFasting = false
-                    } else {
-                        // 단식 시작
+                    if (isFasting) { fastingPrefs.setFasting(false); isFasting = false }
+                    else {
                         val now = System.currentTimeMillis()
-                        fastingPrefs.setStartTime(now)
-                        fastingPrefs.setFasting(true)
-                        startTime = now
-                        isFasting = true
-                        currentTime = now
+                        fastingPrefs.setStartTime(now); fastingPrefs.setFasting(true)
+                        startTime = now; isFasting = true; currentTime = now
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(60.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isFasting) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                )
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isFasting) Color(0xFFEF5350) else MaterialTheme.colorScheme.primary)
             ) {
-                Text(
-                    text = if (isFasting) "단식 종료하기" else "16시간 단식 시작하기",
-                    fontSize = 18.sp, fontWeight = FontWeight.Bold
-                )
+                Text(text = if (isFasting) "단식 종료하기" else "16시간 단식 시작", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

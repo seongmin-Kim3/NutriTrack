@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.data.settings.GoalPrefs
 import com.example.nutritrack.ui.viewmodel.MealViewModel
+import com.example.nutritrack.BuildConfig
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -72,7 +73,7 @@ fun WeeklyReportScreen(
     val generativeModel = remember {
         com.google.ai.client.generativeai.GenerativeModel(
             modelName = "gemini-1.5-flash",
-            apiKey = "AQ.Ab8RN6KnAjxbfom7JWWxtU_aSeIcul6AhzZnuHZjXa1TJ-IC7A".trim(),
+            apiKey = BuildConfig.GEMINI_API_KEY.replace("\\s".toRegex(), ""),
             requestOptions = com.google.ai.client.generativeai.type.RequestOptions(apiVersion = "v1")
         )
     }

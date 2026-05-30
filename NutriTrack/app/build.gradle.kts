@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -16,6 +18,16 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        val properties = Properties()
+        val propertiesFile = rootProject.file("local.properties")
+        if (propertiesFile.exists()) {
+            properties.load(propertiesFile.inputStream())
+        }
+        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
+        val foodSafetyKey = properties.getProperty("FOOD_SAFETY_API_KEY") ?: ""
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+        buildConfigField("String", "FOOD_SAFETY_API_KEY", "\"$foodSafetyKey\"")
     }
 
     compileOptions {
@@ -30,6 +42,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

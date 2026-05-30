@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nutritrack.BuildConfig
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.RequestOptions
 import com.google.ai.client.generativeai.type.content
@@ -14,8 +15,8 @@ import kotlinx.coroutines.launch
 
 class HealthDiagnosisViewModel : ViewModel() {
 
-    // 🚨 공백이나 줄바꿈을 완벽히 제거하기 위해 replace 사용
-    private val apiKey = "".replace("\\s".toRegex(), "")
+    // 🌟 local.properties에 숨겨둔 키를 안전하게 불러옵니다!
+    private val apiKey = BuildConfig.GEMINI_API_KEY.replace("\\s".toRegex(), "")
 
     private val generativeModel = GenerativeModel(
         modelName = "gemini-1.5-flash",

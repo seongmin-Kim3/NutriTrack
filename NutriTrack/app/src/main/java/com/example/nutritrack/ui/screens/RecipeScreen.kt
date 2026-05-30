@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.NuonApp
+import com.example.nutritrack.BuildConfig
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.RequestOptions
 import kotlinx.coroutines.launch
@@ -82,7 +83,7 @@ fun RecipeScreen(
     val generativeModel = remember {
         GenerativeModel(
             modelName = "gemini-1.5-flash",
-            apiKey = "".replace("\\s".toRegex(), ""),
+            apiKey = BuildConfig.GEMINI_API_KEY.replace("\\s".toRegex(), ""),
             requestOptions = RequestOptions(apiVersion = "v1")
         )
     }

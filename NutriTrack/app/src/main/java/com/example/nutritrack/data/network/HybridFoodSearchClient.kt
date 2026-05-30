@@ -1,5 +1,6 @@
 package com.example.nutritrack.data.network
 
+import com.example.nutritrack.BuildConfig
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -10,8 +11,8 @@ import java.net.URLEncoder
 
 object HybridFoodSearchClient {
 
-    // 🚨 여기에 발급받으신 인증키를 다시 붙여넣어 주세요!
-    private const val API_KEY = "571e40c0bb0356067625120ba9e467e3fb2a3695d6ab5ab96f2c34c97a9d1ee2"
+    // 🌟 API 키를 BuildConfig를 통해 안전하게 가져옵니다.
+    private val API_KEY = BuildConfig.FOOD_SAFETY_API_KEY.replace("\\s".toRegex(), "")
 
     private const val BASE_URL = "https://apis.data.go.kr/1471000/FoodNtrIrdntInfoService1/getFoodNtrItdntList1"
 

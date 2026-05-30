@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 class HealthDiagnosisViewModel : ViewModel() {
 
     // 🚨 공백이나 줄바꿈을 완벽히 제거하기 위해 replace 사용
-    private val apiKey = "AQ.Ab8RN6Kx0N3NqYeovFwmtMhVhAzctp9bqfDq4_FP2YTx3o8viA".replace("\\s".toRegex(), "")
+    private val apiKey = "".replace("\\s".toRegex(), "")
 
     private val generativeModel = GenerativeModel(
         modelName = "gemini-1.5-flash",

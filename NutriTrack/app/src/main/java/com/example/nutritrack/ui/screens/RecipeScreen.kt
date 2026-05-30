@@ -82,7 +82,7 @@ fun RecipeScreen(
     val generativeModel = remember {
         GenerativeModel(
             modelName = "gemini-1.5-flash",
-            apiKey = "AQ.Ab8RN6Kx0N3NqYeovFwmtMhVhAzctp9bqfDq4_FP2YTx3o8viA".replace("\\s".toRegex(), ""),
+            apiKey = "".replace("\\s".toRegex(), ""),
             requestOptions = RequestOptions(apiVersion = "v1")
         )
     }

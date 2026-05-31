@@ -22,9 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.NuonApp
-import com.example.nutritrack.BuildConfig
-import com.google.ai.client.generativeai.GenerativeModel
-import kotlinx.coroutines.launch
+import com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel
+import com.example.nutritrack.ui.viewmodel.ShoppingViewModel
 
 @Composable
 fun SmartYoutubeItem(text: String) {
@@ -64,27 +63,22 @@ fun SmartYoutubeItem(text: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeScreen(
-    shoppingVm: com.example.nutritrack.ui.viewmodel.ShoppingViewModel,
+    aiVm: HealthDiagnosisViewModel, // 🌟 통합된 AI 뷰모델 사용
+    shoppingVm: ShoppingViewModel,
     onBack: () -> Unit,
     onGoToShoppingList: () -> Unit
 ) {
     val context = LocalContext.current
     val goalPrefs = remember { (context.applicationContext as NuonApp).container.goalPrefs }
+    
+    val recipePlan by aiVm.recipePlan.collectAsState()
+    val exercisePlan by aiVm.exercisePlan.collectAsState()
+    val isLoading by aiVm.isRecipeLoading.collectAsState()
+
     var height by remember { mutableStateOf("") }
     var dietType by remember { mutableStateOf("") }
     var exerciseCount by remember { mutableStateOf("") }
     var currentStep by remember { mutableStateOf(0) }
-    var dietPlan by remember { mutableStateOf("") }
-    var exercisePlan by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    val generativeModel = remember {
-        GenerativeModel(
-            modelName = "gemini-1.5-flash",
-            apiKey = BuildConfig.GEMINI_API_KEY.replace("\\s".toRegex(), "")
-        )
-    }
 
     Scaffold(
         containerColor = Color(0xFFF8F9FA),
@@ -111,70 +105,14 @@ fun RecipeScreen(
                         Button(
                             onClick = {
                                 if (height.isBlank() || dietType.isBlank() || exerciseCount.isBlank()) return@Button
-                                isLoading = true
-
-                                val prompt = """
-                                    당신은 전문 영양사 및 헬스 트레이너입니다.
-                                    키 ${height}cm 사용자의 '$dietType' 식단과 '$exerciseCount' 운동 루틴을 분석해서 맞춤 추천을 해주세요.
-                                    반드시 아래 양식을 지켜서 답변해주세요.
-                                    
-                                    ===식단===
-                                    (이곳에 식단 추천 내용 작성)
-                                    ===운동===
-                                    (이곳에 운동 추천 내용 작성)
-                                """.trimIndent()
-
-                                scope.launch {
-                                    try {
-                                        val result = generativeModel.generateContent(prompt).text ?: ""
-                                        dietPlan = result.substringAfter("===식단===").substringBefore("===운동===").trim()
-                                        exercisePlan = result.substringAfter("===운동===").trim()
-                                        currentStep = 1
-                                    } catch (e: Exception) {
-                                        // 🌟 [최종 발표용 무적 방어막] 통신 에러가 나더라도 앱이 고장 난 티를 내지 않고 멋진 결과를 띄워줍니다!
-                                        dietPlan = """
-                                            ✨ AI가 회원님의 정보를 바탕으로 완벽한 식단을 구성했습니다!
-                                            
-                                            [아침] 
-                                            - 통밀빵 1장 & 아보카도 스프레드
-                                            - 삶은 달걀 2개
-                                            - 따뜻한 블랙 커피 한 잔
-                                            
-                                            [점심]
-                                            - 현미밥 1/2공기
-                                            - 닭가슴살 샐러드 (발사믹 드레싱)
-                                            - 방울토마토 5알
-                                            
-                                            [저녁]
-                                            - 연어 스테이크 150g
-                                            - 구운 아스파라거스와 양파
-                                            
-                                            💡 간식으로는 무가당 그릭 요거트를 추천해 드려요!
-                                        """.trimIndent()
-
-                                        exercisePlan = """
-                                            🔥 회원님의 체력에 딱 맞는 AI 맞춤형 운동 루틴입니다.
-                                            
-                                            1. 웜업 (10분)
-                                            - 가벼운 스트레칭 및 제자리 걷기
-                                            
-                                            2. 본 운동 (서킷 트레이닝 3세트)
-                                            - 와이드 스쿼트 15회
-                                            - 푸시업 (무릎 대고 가능) 12회
-                                            - 플랭크 1분 버티기
-                                            
-                                            3. 쿨다운 (5분)
-                                            - 전신 이완 폼롤러 스트레칭
-                                            
-                                            집에서도 쉽게 따라 할 수 있는 홈트레이닝 영상을 참고해 보세요!
-                                            https://www.youtube.com/watch?v=swRNeYw1JkY
-                                        """.trimIndent()
-
-                                        currentStep = 1
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
+                                aiVm.getRecipeAndExercisePlan(
+                                    height, 
+                                    goalPrefs.getUserWeight(), 
+                                    goalPrefs.getTargetWeight(), 
+                                    dietType, 
+                                    exerciseCount
+                                )
+                                currentStep = 1
                             },
                             modifier = Modifier.fillMaxWidth().height(60.dp),
                             shape = RoundedCornerShape(16.dp),
@@ -195,7 +133,11 @@ fun RecipeScreen(
                             TextButton(onClick = onGoToShoppingList) { Text("🛒 내 장바구니 보기") }
                         }
 
-                        SmartYoutubeItem(dietPlan)
+                        if (recipePlan.isNotBlank()) {
+                            SmartYoutubeItem(recipePlan)
+                        } else if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                        }
 
                         var newItemName by remember { mutableStateOf("") }
                         Card(
@@ -224,7 +166,9 @@ fun RecipeScreen(
                     }
                     2 -> {
                         Text("💪 추천 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        SmartYoutubeItem(exercisePlan)
+                        if (exercisePlan.isNotBlank()) {
+                            SmartYoutubeItem(exercisePlan)
+                        }
                         OutlinedButton(onClick = { currentStep = 0 }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) { Text("다시 입력하기") }
                     }
                 }

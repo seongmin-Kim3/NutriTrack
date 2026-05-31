@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
     id("com.google.gms.google-services")
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -26,8 +27,8 @@ android {
             properties.load(propertiesFile.inputStream())
         }
         
-        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: "AQ.Ab8RN6Kx0N3NqYeovFwmtMhVhAzctp9bqfDq4_FP2YTx3o8viA"
-        val foodKey = properties.getProperty("FOOD_SAFETY_API_KEY") ?: "e5f918dbd90f4b48a7ee"
+        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
+        val foodKey = properties.getProperty("FOOD_SAFETY_API_KEY") ?: ""
 
         // 코드에서 BuildConfig.변수명 으로 사용할 수 있게 등록
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
@@ -87,5 +88,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("io.coil-kt:coil-compose:2.6.0")
 }

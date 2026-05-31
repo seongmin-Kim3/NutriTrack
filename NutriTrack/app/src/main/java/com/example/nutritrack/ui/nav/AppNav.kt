@@ -87,8 +87,8 @@ fun AppNav(startDestination: String = "login") {
                 onSavedFoods = { navController.navigate("savedFoods") },
                 onRecipeRecommend = { navController.navigate("recipe") },
                 onFastingTimer = { navController.navigate("fasting") },
-                onAiDiagnosis = { navController.navigate("health_diagnosis") }, // 👈 이 줄 추가
-                onWaterTrack = { navController.navigate("water_tracking") },
+                onAiDiagnosis = { navController.navigate("aiDiagnosis") },
+                onWaterTrack = { navController.navigate("water") },
                 onNotificationSettings = { navController.navigate("notificationSettings") }
             )
         }
@@ -99,6 +99,7 @@ fun AppNav(startDestination: String = "login") {
 
         composable("recipe") {
             RecipeScreen(
+                aiVm = aiDiagnosisVm,
                 shoppingVm = shoppingVm,
                 onBack = { navController.popBackStack() },
                 onGoToShoppingList = { navController.navigate("shoppingList") }
@@ -177,7 +178,12 @@ fun AppNav(startDestination: String = "login") {
         }
 
         composable("weekly") {
-            WeeklyReportScreen(mealVm = mealVm, goalPrefs = goalPrefs, onBack = { navController.popBackStack() })
+            WeeklyReportScreen(
+                mealVm = mealVm, 
+                aiVm = aiDiagnosisVm,
+                goalPrefs = goalPrefs, 
+                onBack = { navController.popBackStack() }
+            )
         }
 
         // 🌟 새로 추가된 AI 진단 화면 연결

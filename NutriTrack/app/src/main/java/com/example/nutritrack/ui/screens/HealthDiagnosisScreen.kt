@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -57,13 +58,21 @@ fun HealthDiagnosisScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("AI 건강 진단", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로 가기")
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp).verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(20.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -72,18 +81,32 @@ fun HealthDiagnosisScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "인바디 결과지나 건강검진표를 올려주세요!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "인바디 결과지나 건강검진표를 올려주세요!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = "AI가 수치를 분석해 운동과 식단을 제안합니다.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    
+                    Text(
+                        text = "AI가 수치를 분석해 운동과 식단을 제안합니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
-                    
+
                     Button(
-                        onClick = { photoPickerLauncher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        onClick = {
+                            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(12.dp)
-                    ) { Text("📷 이미지 업로드") }
+                    ) {
+                        Text("📷 이미지 업로드", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
@@ -91,8 +114,11 @@ fun HealthDiagnosisScreen(
                 Card(shape = RoundedCornerShape(20.dp)) {
                     AsyncImage(
                         model = selectedImageUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(20.dp))
+                        contentDescription = "선택된 이미지",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp)
+                            .clip(RoundedCornerShape(20.dp))
                     )
                 }
 
@@ -101,28 +127,44 @@ fun HealthDiagnosisScreen(
                     modifier = Modifier.fillMaxWidth().height(60.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) { Text("✨ 분석 시작하기", fontWeight = FontWeight.ExtraBold) }
+                ) {
+                    Text("✨ 분석 시작하기", fontWeight = FontWeight.ExtraBold)
+                }
             }
 
+            // 👇 바로 이 부분에서 결과가 버튼 아래에 짜잔! 하고 나타납니다.
             when (val state = uiState) {
                 is DiagnosisUiState.Loading -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
-                        CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("데이터를 꼼꼼히 분석 중입니다...")
+                        Text("AI가 데이터를 꼼꼼히 분석 중입니다...", fontWeight = FontWeight.Medium)
                     }
                 }
                 is DiagnosisUiState.Success -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Text(text = state.result, modifier = Modifier.padding(20.dp), style = MaterialTheme.typography.bodyMedium, lineHeight = 26.sp)
+                        Text(
+                            text = state.result,
+                            modifier = Modifier.padding(20.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            lineHeight = 26.sp
+                        )
                     }
                 }
                 is DiagnosisUiState.Error -> {
-                    Text(text = "⚠️ 에러: ${state.message}", color = Color.Red, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "⚠️ 에러가 발생했습니다: ${state.message}",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 else -> {}
             }

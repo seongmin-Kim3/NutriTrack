@@ -26,8 +26,8 @@ android {
             properties.load(propertiesFile.inputStream())
         }
         
-        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
-        val foodKey = properties.getProperty("FOOD_SAFETY_API_KEY") ?: ""
+        val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: "AQ.Ab8RN6Kx0N3NqYeovFwmtMhVhAzctp9bqfDq4_FP2YTx3o8viA"
+        val foodKey = properties.getProperty("FOOD_SAFETY_API_KEY") ?: "e5f918dbd90f4b48a7ee"
 
         // 코드에서 BuildConfig.변수명 으로 사용할 수 있게 등록
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")

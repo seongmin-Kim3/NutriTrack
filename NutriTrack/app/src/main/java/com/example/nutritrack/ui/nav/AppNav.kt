@@ -87,8 +87,8 @@ fun AppNav(startDestination: String = "login") {
                 onSavedFoods = { navController.navigate("savedFoods") },
                 onRecipeRecommend = { navController.navigate("recipe") },
                 onFastingTimer = { navController.navigate("fasting") },
-                onAiDiagnosis = { navController.navigate("aiDiagnosis") }, // AI 버튼 동작 연결
-                onWaterTrack = { navController.navigate("water") },
+                onAiDiagnosis = { navController.navigate("health_diagnosis") }, // 👈 이 줄 추가
+                onWaterTrack = { navController.navigate("water_tracking") },
                 onNotificationSettings = { navController.navigate("notificationSettings") }
             )
         }

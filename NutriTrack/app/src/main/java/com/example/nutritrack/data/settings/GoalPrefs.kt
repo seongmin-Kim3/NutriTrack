@@ -15,6 +15,12 @@ class GoalPrefs(context: Context) {
 
     fun isProfileSetup(): Boolean = prefs.getBoolean("profile_setup", false)
 
+    // 닉네임 저장 및 불러오기 추가
+    fun getUserNickname(): String = prefs.getString("nickname", "회원") ?: "회원"
+    fun saveUserNickname(nickname: String) {
+        prefs.edit().putString("nickname", nickname).apply()
+    }
+
     // ✅ 사용자 기본 신체 정보 저장하기 (목표 체중 포함)
     fun saveUserProfile(height: Float, weight: Float, targetWeight: Float, activityLevel: String, dietGoal: String) {
         prefs.edit()

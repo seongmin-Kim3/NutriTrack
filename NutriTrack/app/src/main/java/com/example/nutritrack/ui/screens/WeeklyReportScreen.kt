@@ -4,10 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,11 +37,34 @@ private data class DaySummary(
     val fat: Int
 )
 
+@Composable
+fun WeeklyAiCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, content: String, color: Color) {
+    val cleanContent = content.replace("[총평]", "").replace("[칭찬]", "").replace("[주의]", "").replace("[액션플랜]", "").trim()
+    if (cleanContent.isBlank() || cleanContent.length < 5) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(modifier = Modifier.padding(20.dp)) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(text = title, fontWeight = FontWeight.Bold, color = color, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = cleanContent, style = MaterialTheme.typography.bodyMedium, lineHeight = 22.sp, color = Color.DarkGray)
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeeklyReportScreen(
     mealVm: MealViewModel,
-    aiVm: HealthDiagnosisViewModel, // 🌟 통합된 AI 뷰모델 사용
+    aiVm: HealthDiagnosisViewModel,
     goalPrefs: GoalPrefs,
     onBack: () -> Unit
 ) {
@@ -50,9 +78,7 @@ fun WeeklyReportScreen(
     }
 
     val daySummaries = remember(meals) {
-        val byDate = meals.groupBy { m ->
-            Instant.ofEpochMilli(m.createdAtMillis).atZone(zone).toLocalDate()
-        }
+        val byDate = meals.groupBy { m -> Instant.ofEpochMilli(m.createdAtMillis).atZone(zone).toLocalDate() }
         last7Dates.map { d ->
             val list = byDate[d].orEmpty()
             DaySummary(d, list.sumOf { it.calories }, list.sumOf { it.carbs }, list.sumOf { it.protein }, list.sumOf { it.fat })
@@ -71,9 +97,7 @@ fun WeeklyReportScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("주간 리포트", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "뒤로") }
-                },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         }
@@ -83,71 +107,69 @@ fun WeeklyReportScreen(
             contentPadding = PaddingValues(vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // 🌟 1. AI 정밀 분석 헤더
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF673AB7))
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF9C27B0))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "AI 주간 정밀 분석", fontWeight = FontWeight.Bold, color = Color(0xFF7B1FA2))
-                        }
+                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.AutoAwesome, null, tint = Color.White, modifier = Modifier.size(32.dp))
                         Spacer(modifier = Modifier.height(12.dp))
+                        Text(text = "AI가 분석한 나의 주간 영양", color = Color.White, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(20.dp))
                         
                         if (isAnalyzing) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
-                            Text(text = "AI가 지난 일주일을 꼼꼼히 살피고 있습니다...", style = MaterialTheme.typography.bodySmall)
+                            CircularProgressIndicator(color = Color.White)
                         } else {
-                            Text(text = aiWeeklyAnalysis, style = MaterialTheme.typography.bodyMedium, lineHeight = 24.sp)
-                            Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = {
-                                    val dataSummary = daySummaries.joinToString("\n") { 
-                                        "${it.date}: ${it.kcal}kcal (탄${it.carbs} 단${it.protein} 지${it.fat})"
-                                    }
+                                    val dataSummary = daySummaries.joinToString("\n") { "${it.date}: ${it.kcal}kcal" }
                                     aiVm.getWeeklyAnalysis(dataSummary, goalKcal)
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("✨ 주간 리포트 생성하기")
+                                Text("✨ 분석 리포트 생성", color = Color(0xFF673AB7), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
 
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                ) {
-                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "지난 7일 평균", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(text = avgKcal.toString(), style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black)
-                            Text(text = " kcal / 일", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp, start = 4.dp))
-                        }
-                        LinearProgressIndicator(
-                            progress = { (avgKcal.toFloat() / goalKcal.coerceAtLeast(1)).coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).padding(vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = Color.White,
-                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                        )
-                        Text(text = "목표 ${goalKcal}kcal 대비 ${if(avgKcal > goalKcal) "초과" else "적정"} 수준입니다.", style = MaterialTheme.typography.bodySmall)
+            if (aiWeeklyAnalysis.length > 10 && !isAnalyzing) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        WeeklyAiCard("이번 주 총평", Icons.Default.Analytics, aiWeeklyAnalysis.substringAfter("[총평]").substringBefore("[칭찬]"), Color(0xFF1976D2))
+                        WeeklyAiCard("칭찬합니다!", Icons.Default.CheckCircle, aiWeeklyAnalysis.substringAfter("[칭찬]").substringBefore("[주의]"), Color(0xFF388E3C))
+                        WeeklyAiCard("주의하세요", Icons.Default.Error, aiWeeklyAnalysis.substringAfter("[주의]").substringBefore("[액션플랜]"), Color(0xFFE64A19))
+                        WeeklyAiCard("다음 주 미션", Icons.Default.Lightbulb, aiWeeklyAnalysis.substringAfter("[액션플랜]"), Color(0xFFFBC02D))
                     }
                 }
             }
 
+            // 🌟 2. 평균 수치 카드
             item {
-                Text(text = "날짜별 상세 기록", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "일 평균 섭취량", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
+                        Text(text = "$avgKcal kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        LinearProgressIndicator(
+                            progress = { (avgKcal.toFloat() / goalKcal.coerceAtLeast(1)).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(8.dp).padding(vertical = 8.dp),
+                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    }
+                }
             }
+
+            item { Text(text = "날짜별 기록", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
 
             items(daySummaries.reversed()) { summary ->
                 Card(
@@ -156,16 +178,12 @@ fun WeeklyReportScreen(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text(text = summary.date.format(dateFmt), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            Text(text = "탄 ${summary.carbs}g · 단 ${summary.protein}g · 지 ${summary.fat}g", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text(text = summary.date.format(dateFmt), fontWeight = FontWeight.Bold)
+                            Text(text = "탄 ${summary.carbs} 단 ${summary.protein} 지 ${summary.fat}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                         }
-                        Text(text = "${summary.kcal} kcal", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleLarge)
+                        Text(text = "${summary.kcal} kcal", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

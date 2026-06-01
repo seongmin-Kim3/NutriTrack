@@ -12,15 +12,10 @@ import com.example.nutritrack.NuonApp
 import com.example.nutritrack.data.repo.AuthRepository
 import com.example.nutritrack.data.settings.FastingPrefs
 import com.example.nutritrack.ui.screens.*
-import com.example.nutritrack.ui.viewmodel.AuthViewModel
-import com.example.nutritrack.ui.viewmodel.FoodViewModel
-import com.example.nutritrack.ui.viewmodel.MealViewModel
-import com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel
-import com.example.nutritrack.ui.viewmodel.WaterViewModel
-import com.example.nutritrack.ui.viewmodel.ShoppingViewModel
+import com.example.nutritrack.ui.viewmodel.*
 
 @Composable
-fun AppNav(startDestination: String = "login") {
+fun AppNav(startDestination: String = "login") { // 🌟 기본 시작 화면을 로그인으로 설정
     val navController = rememberNavController()
     val context = LocalContext.current
 
@@ -31,7 +26,7 @@ fun AppNav(startDestination: String = "login") {
     val fastingPrefs = FastingPrefs(context)
     val mealVm: MealViewModel = viewModel(factory = container.mealViewModelFactory)
     val foodVm: FoodViewModel = viewModel(factory = container.foodViewModelFactory)
-    val aiDiagnosisVm: HealthDiagnosisViewModel = viewModel() // AI 뷰모델
+    val aiDiagnosisVm: HealthDiagnosisViewModel = viewModel()
     val waterVm: WaterViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
         override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
             return WaterViewModel(goalPrefs) as T
@@ -60,6 +55,7 @@ fun AppNav(startDestination: String = "login") {
         composable("signup") {
             SignUpScreen(
                 authVm = authViewModel,
+                goalPrefs = goalPrefs,
                 onBack = { navController.popBackStack() },
                 onSignupSuccess = { navController.popBackStack() }
             )
@@ -89,7 +85,12 @@ fun AppNav(startDestination: String = "login") {
                 onFastingTimer = { navController.navigate("fasting") },
                 onAiDiagnosis = { navController.navigate("aiDiagnosis") },
                 onWaterTrack = { navController.navigate("water") },
-                onNotificationSettings = { navController.navigate("notificationSettings") }
+                onNotificationSettings = { navController.navigate("notificationSettings") },
+                onLogout = { 
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -97,17 +98,33 @@ fun AppNav(startDestination: String = "login") {
             NotificationSettingsScreen(onBack = { navController.popBackStack() })
         }
 
-        composable("recipe") {
+        composable(
+            route = "recipe?step={step}",
+            arguments = listOf(navArgument("step") { type = NavType.IntType; defaultValue = 0 })
+        ) { entry ->
+            val step = entry.arguments?.getInt("step") ?: 0
             RecipeScreen(
                 aiVm = aiDiagnosisVm,
                 shoppingVm = shoppingVm,
                 onBack = { navController.popBackStack() },
-                onGoToShoppingList = { navController.navigate("shoppingList") }
+                onGoToShoppingList = { navController.navigate("shoppingList") },
+                onGoToSettings = { navController.navigate("goals") },
+                initialStep = step
             )
         }
 
         composable("shoppingList") {
-            ShoppingListScreen(vm = shoppingVm, onBack = { navController.popBackStack() })
+            ShoppingListScreen(
+                vm = shoppingVm, 
+                onBack = { 
+                    // 🌟 장바구니에서 뒤로갈 때 '추천 식단' 단계(1)를 유지하며 돌아가도록 쿼리 스트링 활용
+                    navController.navigate("recipe?step=1") {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
         }
 
         composable("fasting") {
@@ -139,7 +156,7 @@ fun AppNav(startDestination: String = "login") {
 
         composable("barcode") {
             BarcodeScanScreen(
-                onFound = { code, name, kcal, carbs, protein, fat ->
+                onFound = { _, name, kcal, carbs, protein, fat ->
                     navController.previousBackStackEntry?.savedStateHandle?.apply {
                         set("sName", name)
                         set("sKcal", kcal.toString())
@@ -158,7 +175,7 @@ fun AppNav(startDestination: String = "login") {
         }
 
         composable("goals") {
-            GoalSettingScreen(goalPrefs = goalPrefs, onBack = { navController.popBackStack() })
+            GoalSettingScreen(goalPrefs = goalPrefs, aiVm = aiDiagnosisVm, onBack = { navController.popBackStack() })
         }
 
         composable("savedFoods") {
@@ -178,15 +195,9 @@ fun AppNav(startDestination: String = "login") {
         }
 
         composable("weekly") {
-            WeeklyReportScreen(
-                mealVm = mealVm, 
-                aiVm = aiDiagnosisVm,
-                goalPrefs = goalPrefs, 
-                onBack = { navController.popBackStack() }
-            )
+            WeeklyReportScreen(mealVm = mealVm, aiVm = aiDiagnosisVm, goalPrefs = goalPrefs, onBack = { navController.popBackStack() })
         }
 
-        // 🌟 새로 추가된 AI 진단 화면 연결
         composable("aiDiagnosis") {
             HealthDiagnosisScreen(viewModel = aiDiagnosisVm, onBack = { navController.popBackStack() })
         }

@@ -13,7 +13,8 @@ data class OffProductResult(
     val caloriesKcal: Int?,
     val carbsG: Int?,
     val proteinG: Int?,
-    val fatG: Int?
+    val fatG: Int?,
+    val servingInfo: String? = null // 🌟 양 정보 추가 (예: "1인분 (300g)")
 )
 
 object OpenFoodFactsClient {

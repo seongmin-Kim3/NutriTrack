@@ -128,12 +128,8 @@ fun AppNav(startDestination: String = "login") { // 🌟 기본 시작 화면을
             ShoppingListScreen(
                 vm = shoppingVm, 
                 onBack = { 
-                    // 🌟 장바구니에서 뒤로갈 때 '추천 식단' 단계(1)를 유지하며 돌아가도록 쿼리 스트링 활용
-                    navController.navigate("recipe?step=1") {
-                        popUpTo("home") { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    // 🌟 사이드메뉴와 추천식단 화면 어디서 왔든 '직전 화면'으로 자연스럽게 돌아가도록 수정
+                    navController.popBackStack()
                 }
             )
         }

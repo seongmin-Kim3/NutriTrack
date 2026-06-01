@@ -25,121 +25,127 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nutritrack.NuonApp
 import com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel
+import com.example.nutritrack.ui.viewmodel.RecipeViewModel
 import com.example.nutritrack.ui.viewmodel.ShoppingViewModel
 
 @Composable
-fun RecipeCard(
-    title: String,
-    menu: String,
-    kcal: String,
-    ingredients: String,
-    description: String,
-    onAddIngredients: (String) -> Unit,
-    onFavoriteClick: () -> Unit // 🌟 즐겨찾기 클릭 이벤트 추가
+fun SmartItem(
+    text: String, 
+    onAddShopping: (String) -> Unit,
+    onSaveFavorite: (String, String, String) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    ) {
-                        Text(
-                            text = when(title) {
-                                "아침" -> "🍳"
-                                "점심" -> "🥗"
-                                "저녁" -> "🍗"
-                                else -> "🍱"
-                            },
-                            modifier = Modifier.padding(8.dp),
-                            fontSize = 18.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    
-                    // 🌟 즐겨찾기(별) 버튼 추가
-                    IconButton(onClick = onFavoriteClick) {
-                        Icon(Icons.Default.Star, contentDescription = "즐겨찾기", tint = Color(0xFFFFD700))
-                    }
-                }
-                Text(text = "$kcal kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = menu, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, lineHeight = 22.sp)
-            
-            Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider(color = Color(0xFFF5F5F5))
-            Spacer(modifier = Modifier.height(20.dp))
-            
-            Text(text = "🛒 필요한 재료 (눌러서 장바구니 추가)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.Gray)
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            @OptIn(ExperimentalLayoutApi::class)
-            androidx.compose.foundation.layout.FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ingredients.split(",").forEach { ingredient ->
-                    val name = ingredient.trim()
-                    if (name.isNotBlank()) {
-                        FilterChip(
-                            selected = false,
-                            onClick = { onAddIngredients(name) },
-                            label = { Text(name) },
-                            leadingIcon = { Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp)) },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = FilterChipDefaults.filterChipColors(containerColor = Color(0xFFF8F9FA))
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ExerciseItem(content: String) {
     val uriHandler = LocalUriHandler.current
+    val urlPattern = Patterns.WEB_URL.toRegex()
     
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.FitnessCenter, null, tint = Color(0xFF7B1FA2), modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(text = content.trim(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = { 
-                    val query = content.trim().replace(" ", "+")
-                    uriHandler.openUri("https://www.youtube.com/results?search_query=$query+운동법") 
-                },
+    val lines = text.split("\n").filter { it.isNotBlank() }
+    
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        lines.forEach { line ->
+            val match = urlPattern.find(line)
+            
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3E5F5)),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Icon(Icons.Default.PlayArrow, null, tint = Color(0xFF7B1FA2))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("운동 알아보러 가기 (YouTube)", color = Color(0xFF7B1FA2), fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.padding(20.dp)) {
+                    // 1. 헤더 파싱
+                    val title = if (line.contains("[") && line.contains("]")) {
+                        line.substringAfter("[").substringBefore("]")
+                    } else if (line.startsWith("- ")) {
+                        line.substringAfter("- ").substringBefore(":").trim()
+                    } else "추천 정보"
+
+                    // 본문 텍스트 정리
+                    var bodyText = line.replace("[$title]", "").replace("- $title:", "").trim()
+                    if (bodyText.startsWith("- ")) bodyText = bodyText.substring(2)
+                    
+                    val cleanBodyText = if (match != null) bodyText.replace(match.value, "").replace("()", "").trim() else bodyText
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val icon = when {
+                                title.contains("아침") -> "🍳"
+                                title.contains("점심") -> "🥗"
+                                title.contains("저녁") -> "🍗"
+                                else -> "💪"
+                            }
+                            Surface(color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f), shape = CircleShape) {
+                                Text(text = icon, modifier = Modifier.padding(8.dp), fontSize = 16.sp)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(text = title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            
+                            // 🌟 즐겨찾기 별 버튼
+                            if (title.contains("아침") || title.contains("점심") || title.contains("저녁")) {
+                                IconButton(onClick = { onSaveFavorite(title, cleanBodyText, cleanBodyText) }) {
+                                    Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700))
+                                }
+                                
+                                // 🌟 우측에 칼로리 표시 (파싱 시도)
+                                val kcalMatch = Regex("(\\d+)\\s*kcal").find(cleanBodyText)
+                                kcalMatch?.let {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(text = "${it.groupValues[1]} kcal", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = cleanBodyText, style = MaterialTheme.typography.bodyMedium, lineHeight = 22.sp)
+
+                    // 2. 유튜브 버튼
+                    if (match != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { uriHandler.openUri(match.value) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3E5F5)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, null, tint = Color(0xFF7B1FA2))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("영상 가이드 보기 (YouTube)", color = Color(0xFF7B1FA2), fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // 3. 재료 버튼화 (식단인 경우)
+                    if (title.contains("아침") || title.contains("점심") || title.contains("저녁")) {
+                        val ingredientsPart = cleanBodyText.substringAfter("재료:").trim()
+                        if (ingredientsPart != cleanBodyText) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = Color(0xFFF5F5F5))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Text("🛒 필요한 재료 (눌러서 장바구니 추가)", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            @OptIn(ExperimentalLayoutApi::class)
+                            androidx.compose.foundation.layout.FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                ingredientsPart.split(",").forEach { ingredient ->
+                                    val name = ingredient.trim().substringBefore("(").trim()
+                                    if (name.isNotBlank()) {
+                                        AssistChip(
+                                            onClick = { onAddShopping(name) },
+                                            label = { Text(name) },
+                                            leadingIcon = { Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp)) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -150,11 +156,11 @@ fun ExerciseItem(content: String) {
 fun RecipeScreen(
     aiVm: HealthDiagnosisViewModel,
     shoppingVm: ShoppingViewModel,
-    recipeVm: com.example.nutritrack.ui.viewmodel.RecipeViewModel, // 🌟 즐겨찾기용 뷰모델 추가
+    recipeVm: RecipeViewModel, // 🌟 즐겨찾기 뷰모델 추가
     onBack: () -> Unit,
     onGoToShoppingList: () -> Unit,
     onGoToSettings: () -> Unit,
-    onGoToFavorites: () -> Unit, // 🌟 즐겨찾기 화면 이동 콜백 추가
+    onGoToFavorites: () -> Unit, // 🌟 즐겨찾기 화면 이동
     initialStep: Int = 0
 ) {
     val context = LocalContext.current
@@ -169,7 +175,7 @@ fun RecipeScreen(
     val dietGoal = goalPrefs.getDietGoal()
 
     var currentStep by remember { mutableIntStateOf(initialStep) }
-    var hasPlanGenerated by remember { mutableStateOf(recipePlan.isNotBlank()) }
+    var hasGeneratedOnce by remember { mutableStateOf(recipePlan.isNotBlank()) }
 
     Scaffold(
         containerColor = Color(0xFFF8F9FA),
@@ -181,32 +187,24 @@ fun RecipeScreen(
             )
         }
     ) { padding ->
-        Crossfade(targetState = currentStep, label = "") { step ->
+        Crossfade(targetState = currentStep, label = "step") { step ->
             Column(modifier = Modifier.padding(padding).fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 when (step) {
                     0 -> {
                         Text(text = "현재 프로필 정보를 기반으로\n최적의 플랜을 설계합니다", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
                         
-                        Card(
-                            shape = RoundedCornerShape(24.dp), 
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                Text(text = "나의 신체 정보", fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                            Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(text = "확인된 나의 정보", fontWeight = FontWeight.Bold, color = Color.Gray)
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("키 / 현재 체중", fontWeight = FontWeight.Medium)
-                                    Text("${userHeight}cm / ${userWeight}kg", fontWeight = FontWeight.Bold)
+                                    Text("키 / 체중", fontWeight = FontWeight.Medium)
+                                    Text("${userHeight}cm / ${userWeight}kg")
                                 }
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("목표 체중", fontWeight = FontWeight.Medium)
-                                    Text("${targetWeight}kg", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                    Text("목표", fontWeight = FontWeight.Medium)
+                                    Text("$dietGoal (${targetWeight}kg)")
                                 }
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("식단 목표", fontWeight = FontWeight.Medium)
-                                    Text(dietGoal, fontWeight = FontWeight.Bold)
-                                }
-                                HorizontalDivider(color = Color(0xFFF5F5F5))
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFF5F5F5))
                                 TextButton(onClick = onGoToSettings, modifier = Modifier.align(Alignment.End)) {
                                     Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -217,9 +215,9 @@ fun RecipeScreen(
 
                         Button(
                             onClick = { 
-                                if (!hasPlanGenerated) {
+                                if (!hasGeneratedOnce) {
                                     aiVm.getRecipeAndExercisePlan(userHeight, userWeight, targetWeight, dietGoal, goalPrefs.getActivityLevel())
-                                    hasPlanGenerated = true
+                                    hasGeneratedOnce = true
                                 } else {
                                     currentStep = 1
                                 }
@@ -228,23 +226,23 @@ fun RecipeScreen(
                             shape = RoundedCornerShape(16.dp),
                             enabled = !isLoading,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (hasPlanGenerated) Color(0xFF673AB7) else MaterialTheme.colorScheme.primary
+                                containerColor = if (hasGeneratedOnce) Color(0xFF673AB7) else MaterialTheme.colorScheme.primary
                             )
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text("데이터를 분석 중입니다...")
+                                Text("AI가 플랜을 짜고 있습니다...")
                             } else {
                                 Text(
-                                    text = if (hasPlanGenerated) "나만의 플랜 확인하기 ✨" else "나만의 플랜 생성하기 ✨", 
+                                    text = if (hasGeneratedOnce) "나만의 플랜 확인하기 ✨" else "나만의 플랜 생성하기 ✨", 
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp
                                 )
                             }
                         }
-
-                        // 🌟 [추가] 맞춤식단 즐겨찾기 버튼
+                        
+                        // 🌟 맞춤식단 즐겨찾기 버튼 복구
                         OutlinedButton(
                             onClick = onGoToFavorites,
                             modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -258,61 +256,28 @@ fun RecipeScreen(
                     }
                     1 -> {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("🍽️ 추천 식단", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                            TextButton(onClick = onGoToShoppingList) { 
-                                Icon(Icons.Default.ShoppingCart, null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("장바구니 확인") 
-                            }
+                            Text("🍽️ 추천 식단", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            TextButton(onClick = onGoToShoppingList) { Text("🛒 장바구니 확인") }
                         }
                         
-                        if (recipePlan.isNotBlank()) {
-                            val sections = recipePlan.split("[")
-                            sections.forEach { section ->
-                                if (section.contains("]")) {
-                                    val title = section.substringBefore("]").trim()
-                                    val menu = section.substringAfter("메뉴:").substringBefore("칼로리:").trim()
-                                    val kcal = section.substringAfter("칼로리:").substringBefore("재료:").trim().filter { it.isDigit() }
-                                    val ingredients = section.substringAfter("재료:").substringBefore("설명:").trim()
-                                    val description = section.substringAfter("설명:").substringBefore("\n\n").trim()
-                                    
-                                    RecipeCard(
-                                        title = title,
-                                        menu = menu,
-                                        kcal = kcal,
-                                        ingredients = ingredients,
-                                        description = description,
-                                        onAddIngredients = { shoppingVm.addItem(it) },
-                                        onFavoriteClick = {
-                                            recipeVm.saveFavorite(title, menu, kcal.toIntOrNull() ?: 0, ingredients, description)
-                                        }
-                                    )
-                                }
+                        SmartItem(
+                            text = recipePlan, 
+                            onAddShopping = { shoppingVm.addItem(it) },
+                            onSaveFavorite = { type, name, ingr ->
+                                recipeVm.saveFavorite(type, name, 0, ingr, name)
                             }
-                        }
+                        )
 
-                        Button(
-                            onClick = { currentStep = 2 }, 
-                            modifier = Modifier.fillMaxWidth().height(56.dp), 
-                            shape = RoundedCornerShape(16.dp)
-                        ) { Text("운동 루틴 확인하기 ➡️", fontWeight = FontWeight.Bold) }
+                        Button(onClick = { currentStep = 2 }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) { Text("다음: 운동 루틴 확인 ➡️", fontWeight = FontWeight.Bold) }
                     }
                     2 -> {
-                        Text("🏃 추천 운동", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                        if (exercisePlan.isNotBlank()) {
-                            exercisePlan.split("\n- ").forEach { line ->
-                                if (line.isNotBlank() && line.length > 5) {
-                                    val cleanLine = line.replace("-", "").trim()
-                                    ExerciseItem(cleanLine)
-                                }
-                            }
-                        }
-                        OutlinedButton(
-                            onClick = { currentStep = 0; hasPlanGenerated = false }, 
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
-                        ) { Text("플랜 새로 만들기", color = Color.Gray) }
+                        Text("🏃 추천 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        SmartItem(
+                            text = exercisePlan, 
+                            onAddShopping = {},
+                            onSaveFavorite = { _, _, _ -> }
+                        )
+                        OutlinedButton(onClick = { currentStep = 0; hasGeneratedOnce = false }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) { Text("플랜 새로 만들기") }
                     }
                 }
             }

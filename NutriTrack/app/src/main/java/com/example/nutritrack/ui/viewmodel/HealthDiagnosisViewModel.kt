@@ -17,9 +17,9 @@ class HealthDiagnosisViewModel : ViewModel() {
 
     private val apiKey = BuildConfig.GEMINI_API_KEY.replace("\\s".toRegex(), "")
 
-    // 🌟 [Gemini 1.5 전용] 안정적인 모델명을 사용합니다.
+    // 🌟 [Gemini 2.5 전용] 최신 모델을 사용합니다.
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = "gemini-2.5-flash",
         apiKey = apiKey,
         requestOptions = RequestOptions(apiVersion = "v1beta")
     )
@@ -91,80 +91,83 @@ class HealthDiagnosisViewModel : ViewModel() {
 
     fun getRecipeAndExercisePlan(height: String, weight: Float, targetWeight: Float, dietType: String, exerciseCount: String) {
         _isRecipeLoading.value = true
+        _recipePlan.value = "" // 🌟 로딩 시작 시 기존 플랜 초기화
+        _exercisePlan.value = ""
+        
         viewModelScope.launch {
             try {
                 val prompt = """
-                    목표: ${targetWeight}kg 달성을 위한 맞춤형 처방.
-                    사용자: 키 ${height}cm, 체중 ${weight}kg, 선호식단 $dietType, 빈도 $exerciseCount.
+                    당신은 최고 실력의 영양사 및 트레이너입니다.
+                    목표: ${targetWeight}kg 달성, 사용자: 키 ${height}cm, 체중 ${weight}kg, 선호식단 $dietType, 빈도 $exerciseCount.
                     
-                    반드시 아래 형식으로만 답변하세요:
+                    반드시 아래 형식을 '완벽하게' 지켜서 답변하세요. 다른 미사여구는 절대 하지 마세요.
+                    
                     ===식단===
-                    🥗 회원님을 위한 맞춤 식단입니다!
-                    [아침] 닭가슴살 샐러드와 고구마
-                    [점심] 현미밥과 연어 스테이크
-                    [저녁] 두부 부침과 야채 볶음
-                    추천 레시피 영상: https://www.youtube.com/watch?v=1yP5q5x6pQ0
-
+                    [아침] 메뉴명 (000 kcal) - 재료: 재료1, 재료2, 재료3
+                    [점심] 메뉴명 (000 kcal) - 재료: 재료1, 재료2, 재료3
+                    [저녁] 메뉴명 (000 kcal) - 재료: 재료1, 재료2, 재료3
+                    
                     ===운동===
-                    💪 목표 달성을 위한 루틴입니다!
-                    1. 스쿼트 15회 x 3세트
-                    2. 푸쉬업 12회 x 3세트
-                    3. 유산소 운동 30분
-                    운동 가이드 영상: https://www.youtube.com/watch?v=swRNeYw1JkY
+                    - 운동명 1: 상세내용 (유튜브 가이드: https://www.youtube.com/results?search_query=운동명1)
+                    - 운동명 2: 상세내용 (유튜브 가이드: https://www.youtube.com/results?search_query=운동명2)
+                    
+                    🚨 중요: 
+                    1. 식단은 반드시 [끼니] 메뉴명 (칼로리) - 재료: 재료들 형식을 한 줄에 하나씩 작성하세요.
+                    2. 운동은 앞에 '-'를 붙여서 작성하세요.
                 """.trimIndent()
                 val response = generativeModel.generateContent(prompt)
-                val result = response.text ?: throw Exception("Empty result")
+                val result = response.text ?: ""
                 _recipePlan.value = result.substringAfter("===식단===").substringBefore("===운동===").trim()
                 _exercisePlan.value = result.substringAfter("===운동===").trim()
             } catch (e: Exception) {
-                // 🌟 [발표용 필살기] API 실패 시 "눈속임용" 무적 데이터 생성!
-                _recipePlan.value = """
-                    🥗 회원님의 [$dietType] 목표를 위한 추천 식단입니다!
-                    
-                    [아침] 통밀 샌드위치 (닭가슴살, 양상추)
-                    [점심] 현미밥 130g, 연어 구이, 시금치 나물
-                    [저녁] 두부 샐러드 (발사믹 드레싱), 고구마 1개
-                    
-                    맛있고 건강한 다이어트 레시피를 참고해보세요!
-                    https://www.youtube.com/watch?v=1yP5q5x6pQ0
-                """.trimIndent()
-                
-                _exercisePlan.value = """
-                    💪 [$exerciseCount] 환경에 맞춘 운동 루틴입니다!
-                    
-                    1. 웜업 스트레칭 (10분)
-                    2. 스쿼트 15회 x 3세트
-                    3. 런지 양발 10회 x 3세트
-                    4. 플랭크 1분 버티기
-                    
-                    초보자도 쉽게 따라할 수 있는 전신 홈트 루틴입니다.
-                    https://www.youtube.com/watch?v=swRNeYw1JkY
-                """.trimIndent()
-            } finally { _isRecipeLoading.value = false }
+                Log.e("AI_DEBUG", "Plan generation error", e)
+                _recipePlan.value = "에러가 발생했습니다. 잠시 후 다시 시도해주세요."
+            } finally {
+                _isRecipeLoading.value = false
+            }
         }
     }
 
     fun getAiNutritionGoal(height: Float, weight: Float, targetWeight: Float, activityLevel: String, dietGoal: String, onResult: (Int, Int, Int, Int) -> Unit) {
         viewModelScope.launch {
             try {
+                // 🌟 [AI 프롬프트 고도화] 모든 변수를 활용하여 과학적인 수치를 요청합니다.
                 val prompt = """
-                    정보: 키 ${height}cm, 체중 ${weight}kg, 목표체중 ${targetWeight}kg, 활동량 $activityLevel, 다이어트 목적 $dietGoal.
-                    하루 권장 영양 목표를 산출하세요.
+                    당신은 임상 영양사입니다. 다음 사용자의 정보를 바탕으로 과학적이고 정밀한 하루 권장 영양 목표를 산출하세요.
+                    
+                    사용자 정보:
+                    - 키: ${height}cm
+                    - 현재 체중: ${weight}kg
+                    - 목표 체중: ${targetWeight}kg
+                    - 평소 활동량: $activityLevel
+                    - 다이어트 목적: $dietGoal
+                    
+                    위 정보를 모두 참고하여, 목표 달성을 위한 최적의 '하루 섭취량'을 계산하세요.
+                    반드시 아래 형식으로만 답변하고, 다른 미사여구는 생략하세요.
+                    
                     칼로리: [숫자]
                     탄수화물: [숫자]
                     단백질: [숫자]
                     지방: [숫자]
                 """.trimIndent()
+                
                 val response = generativeModel.generateContent(prompt)
                 val text = response.text ?: ""
                 
-                val kcal = text.substringAfter("칼로리:").substringBefore("\n").trim().filter { it.isDigit() }.toIntOrNull() ?: 2000
-                val carbs = text.substringAfter("탄수화물:").substringBefore("\n").trim().filter { it.isDigit() }.toIntOrNull() ?: 250
-                val protein = text.substringAfter("단백질:").substringBefore("\n").trim().filter { it.isDigit() }.toIntOrNull() ?: 150
-                val fat = text.substringAfter("지방:").substringBefore("\n").trim().filter { it.isDigit() }.toIntOrNull() ?: 60
+                // 🌟 [수치 오류 해결] 정규식을 사용하여 첫 번째 숫자만 정확히 가져옵니다.
+                fun extractNum(source: String, label: String): Int? {
+                    val part = source.substringAfter(label).substringBefore("\n")
+                    return Regex("\\d+").find(part)?.value?.toIntOrNull()
+                }
+                
+                val kcal = extractNum(text, "칼로리:") ?: 2100
+                val carbs = extractNum(text, "탄수화물:") ?: 260
+                val protein = extractNum(text, "단백질:") ?: 150
+                val fat = extractNum(text, "지방:") ?: 65
                 
                 onResult(kcal, carbs, protein, fat)
             } catch (e: Exception) {
+                Log.e("AI_DEBUG", "영양 목표 설계 에러", e)
                 // 실패 시 기본값이라도 반환
                 onResult(2100, 260, 150, 65)
             }
@@ -176,10 +179,20 @@ class HealthDiagnosisViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val prompt = """
-                    일주일 식단: $dataSummary, 일일목표: $goalKcal kcal. 지난 일주일의 영양 성적표를 작성하세요.
+                    일주일 식단 데이터: $dataSummary
+                    일일 목표 칼로리: $goalKcal kcal
+                    
+                    위 데이터를 바탕으로 이번 주의 영양 성적표를 '핵심만 아주 짧게' 작성하세요. 
+                    인사말, 기간 설명, 표 형식의 데이터 나열은 '절대' 하지 마세요.
+                    
+                    반드시 아래 형식을 지키고, 각 항목당 '딱 한 문장'으로만 답변하세요:
+                    [총평] 이번 주 전반적인 식습관에 대한 한 줄 평
+                    [칭찬] 가장 훌륭했던 점 한 줄
+                    [주의] 가장 개선이 필요한 점 한 줄
+                    [액션플랜] 다음 주를 위한 핵심 미션 한 줄
                 """.trimIndent()
                 val response = generativeModel.generateContent(prompt)
-                _weeklyAnalysis.value = response.text ?: "분석 데이터가 부족합니다."
+                _weeklyAnalysis.value = response.text ?: "분석 내용을 가져오지 못했습니다."
             } catch (e: Exception) {
                 _weeklyAnalysis.value = "지난 일주일의 기록을 분석하고 있습니다. 잠시만 기다려주세요!"
             } finally { _isWeeklyLoading.value = false }

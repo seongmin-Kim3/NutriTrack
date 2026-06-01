@@ -50,11 +50,11 @@ fun FavoriteRecipesScreen(
                 items(favorites) { recipe ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
+                        Column(modifier = Modifier.padding(24.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(text = when(recipe.mealType) {
@@ -62,22 +62,30 @@ fun FavoriteRecipesScreen(
                                         "점심" -> "🥗"
                                         "저녁" -> "🍗"
                                         else -> "🍱"
-                                    }, fontSize = 18.sp)
+                                    }, fontSize = 20.sp)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = recipe.mealType, fontWeight = FontWeight.Bold)
+                                    Text(text = recipe.mealType, fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 14.sp)
                                 }
-                                Text(text = "${recipe.kcal} kcal", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)
+                                Text(text = "${recipe.kcal} kcal", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, fontSize = 16.sp)
                             }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(text = recipe.menuName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "재료: ${recipe.ingredients}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = recipe.description, style = MaterialTheme.typography.bodyMedium, lineHeight = 20.sp)
                             
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                IconButton(onClick = { vm.deleteFavorite(recipe) }) {
-                                    Icon(Icons.Default.Delete, null, tint = Color.LightGray)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            // 🌟 메뉴 이름 크고 진하게
+                            val cleanMenu = recipe.menuName.substringBefore("(").trim()
+                            Text(text = cleanMenu, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // 🌟 재료는 작게 표시
+                            Text(text = "재료: ${recipe.ingredients}", style = MaterialTheme.typography.bodySmall, color = Color.Gray, lineHeight = 18.sp)
+                            
+                            if (recipe.description.isNotBlank() && recipe.description != recipe.menuName) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(text = recipe.description, style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray, lineHeight = 22.sp)
+                            }
+                            
+                            Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.End) {
+                                IconButton(onClick = { vm.deleteFavorite(recipe) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Default.Delete, null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }

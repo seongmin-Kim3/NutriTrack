@@ -39,8 +39,16 @@ private data class DaySummary(
 
 @Composable
 fun WeeklyAiCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, content: String, color: Color) {
-    val cleanContent = content.replace("[총평]", "").replace("[칭찬]", "").replace("[주의]", "").replace("[액션플랜]", "").trim()
-    if (cleanContent.isBlank() || cleanContent.length < 5) return
+    // 🌟 파싱 로직 개선: 불필요한 태그, 마크다운 기호, 표 형식 찌꺼기 제거
+    val cleanContent = content
+        .replace(Regex("\\[.*?]"), "") // [태그] 제거
+        .replace("*", "")               // 마크다운 별표 제거
+        .replace("#", "")               // 마크다운 샵 제거
+        .replace("|", "")               // 표 기호 제거
+        .replace(Regex("-{3,}"), "")    // 구분선 제거
+        .trim()
+    
+    if (cleanContent.isBlank() || cleanContent.length < 3) return
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -82,7 +90,7 @@ fun WeeklyReportScreen(
         last7Dates.map { d ->
             val list = byDate[d].orEmpty()
             DaySummary(d, list.sumOf { it.calories }, list.sumOf { it.carbs }, list.sumOf { it.protein }, list.sumOf { it.fat })
-        }
+        }.sortedByDescending { it.date } // 🌟 칼로리 수치와 상관없이 무조건 날짜 최신순으로 정렬 고정
     }
 
     val totalKcal = remember(daySummaries) { daySummaries.sumOf { it.kcal } }
@@ -171,7 +179,7 @@ fun WeeklyReportScreen(
 
             item { Text(text = "날짜별 기록", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
 
-            items(daySummaries.reversed()) { summary ->
+            items(daySummaries) { summary -> // 🌟 .reversed() 제거 (이미 위에서 정렬됨)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),

@@ -33,6 +33,7 @@ fun AppNav(startDestination: String = "login") { // 🌟 기본 시작 화면을
         }
     })
     val shoppingVm: ShoppingViewModel = viewModel(factory = container.shoppingViewModelFactory)
+    val recipeVm: RecipeViewModel = viewModel(factory = container.recipeViewModelFactory)
 
     val authRepository = AuthRepository()
     val authViewModel = AuthViewModel(authRepository)
@@ -86,6 +87,7 @@ fun AppNav(startDestination: String = "login") { // 🌟 기본 시작 화면을
                 onAiDiagnosis = { navController.navigate("aiDiagnosis") },
                 onWaterTrack = { navController.navigate("water") },
                 onNotificationSettings = { navController.navigate("notificationSettings") },
+                onShoppingList = { navController.navigate("shoppingList") }, // 🌟 추가
                 onLogout = { 
                     navController.navigate("login") {
                         popUpTo("home") { inclusive = true }
@@ -106,10 +108,19 @@ fun AppNav(startDestination: String = "login") { // 🌟 기본 시작 화면을
             RecipeScreen(
                 aiVm = aiDiagnosisVm,
                 shoppingVm = shoppingVm,
+                recipeVm = recipeVm,
                 onBack = { navController.popBackStack() },
                 onGoToShoppingList = { navController.navigate("shoppingList") },
                 onGoToSettings = { navController.navigate("goals") },
+                onGoToFavorites = { navController.navigate("favoriteRecipes") },
                 initialStep = step
+            )
+        }
+
+        composable("favoriteRecipes") {
+            FavoriteRecipesScreen(
+                vm = recipeVm,
+                onBack = { navController.popBackStack() }
             )
         }
 

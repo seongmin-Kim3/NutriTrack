@@ -22,10 +22,12 @@ class AppContainer(context: Context) {
     private val mealRepo = MealRepository(db.mealDao())
     private val foodRepo = FoodRepository(db.foodDao())
     private val shoppingRepo = com.example.nutritrack.data.repo.ShoppingRepository(db.shoppingDao())
+    private val recipeRepo = com.example.nutritrack.data.repo.RecipeRepository(db.favoriteRecipeDao())
 
     val goalPrefs: GoalPrefs = GoalPrefs(context.applicationContext)
 
     val mealViewModelFactory: MealViewModelFactory = MealViewModelFactory(mealRepo)
     val foodViewModelFactory: FoodViewModelFactory = FoodViewModelFactory(foodRepo)
     val shoppingViewModelFactory = com.example.nutritrack.ui.viewmodel.ShoppingViewModelFactory(shoppingRepo)
+    val recipeViewModelFactory = com.example.nutritrack.ui.viewmodel.RecipeViewModelFactory(recipeRepo)
 }

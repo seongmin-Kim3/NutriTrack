@@ -70,7 +70,6 @@ fun MealCategoryCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        // onClick = onClick  // removed to prevent crash if not handled
     ) {
         Row(
             modifier = Modifier.clickable { onClick() }.padding(16.dp),
@@ -117,6 +116,7 @@ fun HomeScreen(
     onAiDiagnosis: () -> Unit,
     onWaterTrack: () -> Unit,
     onNotificationSettings: () -> Unit,
+    onShoppingList: () -> Unit, // 🌟 장바구니 추가
     onLogout: () -> Unit
 ) {
     val selectedDate by vm.selectedDate.collectAsState()
@@ -204,7 +204,6 @@ fun HomeScreen(
                 drawerContainerColor = Color.White
             ) {
                 Spacer(Modifier.height(24.dp))
-                // 🌟 NutriTrack 대신 닉네임님 메뉴로 변경!
                 Text(
                     "${userNickname}님의 메뉴",
                     modifier = Modifier.padding(horizontal = 28.dp, vertical = 16.dp),
@@ -215,7 +214,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(16.dp))
                 
                 NavigationDrawerItem(
-                    label = { Text("맞춤 식단 & 레시피", fontWeight = FontWeight.SemiBold) },
+                    label = { Text("AI 맞춤 식단 & 추천 운동", fontWeight = FontWeight.SemiBold) },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() }; onRecipeRecommend() },
                     icon = { Icon(Icons.Default.Restaurant, null) },
@@ -233,7 +232,7 @@ fun HomeScreen(
                     colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color(0xFFE3F2FD), unselectedIconColor = Color(0xFF1565C0), unselectedTextColor = Color(0xFF1565C0))
                 )
                 NavigationDrawerItem(
-                    label = { Text("주간 리포트 보기", fontWeight = FontWeight.SemiBold) },
+                    label = { Text("주간 리포트", fontWeight = FontWeight.SemiBold) },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() }; onWeekly() },
                     icon = { Icon(Icons.Default.DateRange, null) },
@@ -250,26 +249,19 @@ fun HomeScreen(
                     shape = RoundedCornerShape(16.dp),
                     colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color(0xFFE0F2F1), unselectedIconColor = Color(0xFF00695C), unselectedTextColor = Color(0xFF00695C))
                 )
-                NavigationDrawerItem(
-                    label = { Text("알림 및 루틴 설정", fontWeight = FontWeight.SemiBold) },
-                    selected = false,
-                    onClick = { scope.launch { drawerState.close() }; onNotificationSettings() },
-                    icon = { Icon(Icons.Default.Notifications, null) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color(0xFFFFF3E0), unselectedIconColor = Color(0xFFE65100), unselectedTextColor = Color(0xFFE65100))
-                )
-                NavigationDrawerItem(
-                    label = { Text("내 음식 관리", fontWeight = FontWeight.SemiBold) },
-                    selected = false,
-                    onClick = { scope.launch { drawerState.close() }; onSavedFoods() },
-                    icon = { Icon(Icons.Default.Star, null) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color(0xFFFCE4EC), unselectedIconColor = Color(0xFFC2185B), unselectedTextColor = Color(0xFFC2185B))
-                )
 
                 Spacer(modifier = Modifier.weight(1f))
+
+                // 🌟 장바구니 버튼 추가
+                NavigationDrawerItem(
+                    label = { Text("장바구니", fontWeight = FontWeight.Bold) },
+                    selected = false,
+                    onClick = { scope.launch { drawerState.close() }; onShoppingList() },
+                    icon = { Icon(Icons.Default.ShoppingCart, null) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color(0xFFE3F2FD), unselectedIconColor = Color(0xFF1565C0), unselectedTextColor = Color(0xFF1565C0))
+                )
 
                 NavigationDrawerItem(
                     label = { Text("로그아웃", fontWeight = FontWeight.Bold) },
@@ -282,7 +274,8 @@ fun HomeScreen(
                         }
                     },
                     icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, null) },
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color(0xFFF5F5F5), unselectedIconColor = Color.Gray, unselectedTextColor = Color.Gray)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -316,8 +309,19 @@ fun HomeScreen(
                         Icon(Icons.Default.Menu, contentDescription = "메뉴", modifier = Modifier.size(28.dp))
                     }
                     Text(text = dateLabel, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                    IconButton(onClick = { showDatePicker = true }, modifier = Modifier.background(Color.White, CircleShape).size(44.dp)) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = "날짜 선택", tint = MaterialTheme.colorScheme.primary)
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // 🌟 알림 버튼 재배치 (종 모양)
+                        IconButton(
+                            onClick = onNotificationSettings,
+                            modifier = Modifier.background(Color.White, CircleShape).size(44.dp)
+                        ) { 
+                            Icon(Icons.Default.Notifications, contentDescription = "알림 설정", tint = Color.Gray) 
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(onClick = { showDatePicker = true }, modifier = Modifier.background(Color.White, CircleShape).size(44.dp)) {
+                            Icon(Icons.Default.CalendarMonth, contentDescription = "날짜 선택", tint = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
 
@@ -388,7 +392,6 @@ fun HomeScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.FitnessCenter, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    // 🌟 요일 루틴 옆에 운동 표시
                                     Text(text = "$dayOfWeekKr 루틴", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
@@ -420,7 +423,13 @@ fun HomeScreen(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "식사 기록", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = onHistory) { Text(text = "전체보기", style = MaterialTheme.typography.labelLarge) }
+                    // 🌟 전체보기 대신 내 음식 보기(별 아이콘) 버튼 추가
+                    IconButton(
+                        onClick = onSavedFoods,
+                        modifier = Modifier.background(Color.White, CircleShape).size(40.dp)
+                    ) { 
+                        Icon(Icons.Default.Star, contentDescription = "내 음식", tint = Color(0xFFFFD700)) 
+                    }
                 }
                 
                 val categories = listOf("아침" to "🍳", "점심" to "🍱", "저녁" to "🥗", "간식" to "🍎")

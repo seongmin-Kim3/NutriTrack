@@ -34,7 +34,8 @@ fun RecipeCard(
     kcal: String,
     ingredients: String,
     description: String,
-    onAddIngredients: (String) -> Unit
+    onAddIngredients: (String) -> Unit,
+    onFavoriteClick: () -> Unit // 🌟 즐겨찾기 클릭 이벤트 추가
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -66,6 +67,11 @@ fun RecipeCard(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    
+                    // 🌟 즐겨찾기(별) 버튼 추가
+                    IconButton(onClick = onFavoriteClick) {
+                        Icon(Icons.Default.Star, contentDescription = "즐겨찾기", tint = Color(0xFFFFD700))
+                    }
                 }
                 Text(text = "$kcal kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)
             }
@@ -144,10 +150,12 @@ fun ExerciseItem(content: String) {
 fun RecipeScreen(
     aiVm: HealthDiagnosisViewModel,
     shoppingVm: ShoppingViewModel,
+    recipeVm: com.example.nutritrack.ui.viewmodel.RecipeViewModel, // 🌟 즐겨찾기용 뷰모델 추가
     onBack: () -> Unit,
     onGoToShoppingList: () -> Unit,
     onGoToSettings: () -> Unit,
-    initialStep: Int = 0 // 🌟 장바구니에서 돌아올 때 단계를 유지하기 위해 추가
+    onGoToFavorites: () -> Unit, // 🌟 즐겨찾기 화면 이동 콜백 추가
+    initialStep: Int = 0
 ) {
     val context = LocalContext.current
     val goalPrefs = remember { (context.applicationContext as NuonApp).container.goalPrefs }
@@ -235,6 +243,18 @@ fun RecipeScreen(
                                 )
                             }
                         }
+
+                        // 🌟 [추가] 맞춤식단 즐겨찾기 버튼
+                        OutlinedButton(
+                            onClick = onGoToFavorites,
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF673AB7).copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("맞춤식단 즐겨찾기", color = Color(0xFF673AB7), fontWeight = FontWeight.Bold)
+                        }
                     }
                     1 -> {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -262,7 +282,10 @@ fun RecipeScreen(
                                         kcal = kcal,
                                         ingredients = ingredients,
                                         description = description,
-                                        onAddIngredients = { shoppingVm.addItem(it) }
+                                        onAddIngredients = { shoppingVm.addItem(it) },
+                                        onFavoriteClick = {
+                                            recipeVm.saveFavorite(title, menu, kcal.toIntOrNull() ?: 0, ingredients, description)
+                                        }
                                     )
                                 }
                             }

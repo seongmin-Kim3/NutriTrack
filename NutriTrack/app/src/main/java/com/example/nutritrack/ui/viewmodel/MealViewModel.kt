@@ -58,8 +58,9 @@ class MealViewModel(
         viewModelScope.launch { repo.insert(entity) }
     }
 
-    fun deleteMeal(id: Long) {
-        viewModelScope.launch { repo.deleteById(id) }
+    // 🌟 [수정] ID 대신 객체 전체를 전달받아 서버에서도 삭제하게 함
+    fun deleteMeal(entity: MealEntity) {
+        viewModelScope.launch { repo.deleteMeal(entity) }
     }
 
     fun getMealsLast7Days(): Flow<List<MealEntity>> {

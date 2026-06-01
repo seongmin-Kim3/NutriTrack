@@ -154,10 +154,12 @@ class HealthDiagnosisViewModel : ViewModel() {
                 val response = generativeModel.generateContent(prompt)
                 val text = response.text ?: ""
                 
-                // 🌟 [수치 오류 해결] 정규식을 사용하여 첫 번째 숫자만 정확히 가져옵니다.
+                // 🌟 [수치 오류 완벽 해결] 정규식을 사용하여 각 라벨 뒤에 오는 '첫 번째 숫자'만 정확히 가져옵니다.
                 fun extractNum(source: String, label: String): Int? {
-                    val part = source.substringAfter(label).substringBefore("\n")
-                    return Regex("\\d+").find(part)?.value?.toIntOrNull()
+                    val line = source.lines().find { it.contains(label) } ?: return null
+                    // 라벨 이후의 텍스트에서 숫자만 찾음
+                    val afterLabel = line.substringAfter(label)
+                    return Regex("\\d+").find(afterLabel)?.value?.toIntOrNull()
                 }
                 
                 val kcal = extractNum(text, "칼로리:") ?: 2100

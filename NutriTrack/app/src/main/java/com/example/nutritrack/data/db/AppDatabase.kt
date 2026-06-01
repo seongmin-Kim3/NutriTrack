@@ -14,7 +14,7 @@ import com.example.nutritrack.data.entity.MealEntity
         com.example.nutritrack.data.entity.ShoppingEntity::class,
         com.example.nutritrack.data.entity.FavoriteRecipeEntity::class
     ],
-    version = 3, // 버전 업그레이드
+    version = 4, // 🌟 3에서 4로 업그레이드 (MealEntity 필드 추가)
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

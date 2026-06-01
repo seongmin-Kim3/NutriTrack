@@ -75,7 +75,7 @@ fun HistoryScreen(mealVm: MealViewModel, onBack: () -> Unit) {
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(text = "${meal.calories} kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                                IconButton(onClick = { mealVm.deleteMeal(meal.id) }, modifier = Modifier.size(32.dp)) {
+                                IconButton(onClick = { mealVm.deleteMeal(meal) }, modifier = Modifier.size(32.dp)) {
                                     Icon(Icons.Default.Delete, contentDescription = "삭제", tint = Color.LightGray, modifier = Modifier.size(18.dp))
                                 }
                             }

@@ -12,5 +12,6 @@ data class MealEntity(
     val carbs: Int,
     val protein: Int,
     val fat: Int,
-    val createdAtMillis: Long
+    val createdAtMillis: Long,
+    val firestoreId: String? = null // 🌟 Firestore 삭제/수정을 위한 ID 저장
 )

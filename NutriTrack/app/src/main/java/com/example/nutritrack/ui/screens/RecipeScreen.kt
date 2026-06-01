@@ -32,7 +32,7 @@ import com.example.nutritrack.ui.viewmodel.ShoppingViewModel
 fun SmartItem(
     text: String, 
     onAddShopping: (String) -> Unit,
-    onSaveFavorite: (String, String, String) -> Unit
+    onSaveFavorite: (String, String, Int, String) -> Unit // 🌟 kcal 매개변수 추가
 ) {
     val uriHandler = LocalUriHandler.current
     val urlPattern = Patterns.WEB_URL.toRegex()
@@ -63,6 +63,17 @@ fun SmartItem(
                     
                     val cleanBodyText = if (match != null) bodyText.replace(match.value, "").replace("()", "").trim() else bodyText
 
+                    // 🌟 칼로리 및 정보 파싱 정교화
+                    val kcalMatch = Regex("(\\d+)\\s*kcal").find(line)
+                    val kcalValue = kcalMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                    
+                    val menuOnly = cleanBodyText.substringBefore("(").trim()
+                    val ingredientsOnly = if (cleanBodyText.contains("재료:")) {
+                        cleanBodyText.substringAfter("재료:").trim()
+                    } else {
+                        cleanBodyText
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -83,15 +94,15 @@ fun SmartItem(
                             
                             // 🌟 즐겨찾기 별 버튼
                             if (title.contains("아침") || title.contains("점심") || title.contains("저녁")) {
-                                IconButton(onClick = { onSaveFavorite(title, cleanBodyText, cleanBodyText) }) {
+                                IconButton(onClick = { 
+                                    onSaveFavorite(title, menuOnly, kcalValue, ingredientsOnly) 
+                                }) {
                                     Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700))
                                 }
                                 
-                                // 🌟 우측에 칼로리 표시 (파싱 시도)
-                                val kcalMatch = Regex("(\\d+)\\s*kcal").find(cleanBodyText)
-                                kcalMatch?.let {
+                                if (kcalValue > 0) {
                                     Spacer(modifier = Modifier.weight(1f))
-                                    Text(text = "${it.groupValues[1]} kcal", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                    Text(text = "$kcalValue kcal", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -263,8 +274,8 @@ fun RecipeScreen(
                         SmartItem(
                             text = recipePlan, 
                             onAddShopping = { shoppingVm.addItem(it) },
-                            onSaveFavorite = { type, name, ingr ->
-                                recipeVm.saveFavorite(type, name, 0, ingr, name)
+                            onSaveFavorite = { type, name, kcal, ingr ->
+                                recipeVm.saveFavorite(type, name, kcal, ingr, name)
                             }
                         )
 
@@ -275,7 +286,7 @@ fun RecipeScreen(
                         SmartItem(
                             text = exercisePlan, 
                             onAddShopping = {},
-                            onSaveFavorite = { _, _, _ -> }
+                            onSaveFavorite = { _, _, _, _ -> } // 🌟 4개의 매개변수로 맞춤
                         )
                         OutlinedButton(onClick = { currentStep = 0; hasGeneratedOnce = false }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) { Text("플랜 새로 만들기") }
                     }

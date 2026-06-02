@@ -27,6 +27,7 @@ fun AppNav(startDestination: String = "login") { // 🌟 기본 시작 화면을
     val mealVm: MealViewModel = viewModel(factory = container.mealViewModelFactory)
     val foodVm: FoodViewModel = viewModel(factory = container.foodViewModelFactory)
     val aiDiagnosisVm: HealthDiagnosisViewModel = viewModel()
+    val stepVm: StepViewModel = viewModel() // 🌟 만보기 뷰모델
     val waterVm: WaterViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
         override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
             return WaterViewModel(goalPrefs) as T
@@ -76,6 +77,7 @@ fun AppNav(startDestination: String = "login") { // 🌟 기본 시작 화면을
                 vm = mealVm,
                 aiVm = aiDiagnosisVm,
                 waterVm = waterVm,
+                stepVm = stepVm, // 🌟 만보기 연결
                 goalPrefs = goalPrefs,
                 onAddMealWithType = { type -> navController.navigate("add/$type") },
                 onHistory = { navController.navigate("history") },

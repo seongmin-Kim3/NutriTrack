@@ -1,11 +1,16 @@
 package com.example.nutritrack
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.example.nutritrack.ui.nav.AppNav
 import com.example.nutritrack.ui.theme.NutriTrackTheme
@@ -15,16 +20,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🌟 파이어베이스를 확인해서 현재 로그인된 유저가 있는지 검사합니다.
         val currentUser = FirebaseAuth.getInstance().currentUser
-
-        // 로그인되어 있으면 "home", 아니면 "login"을 첫 화면으로 지정합니다.
         val startDestination = if (currentUser != null) "home" else "login"
 
         setContent {
             NutriTrackTheme {
-                // 알림 채널 초기화
-                com.example.nutritrack.ui.components.NotificationHelper.createNotificationChannel(this)
+                // 🌟 만보기 권한 요청 (Android 10 이상)
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { }
+
+                LaunchedEffect(Unit) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                    }
+                    // 🌟 알림 채널 초기화 (한 번만 실행되도록 위치 이동)
+                    com.example.nutritrack.ui.components.NotificationHelper.createNotificationChannel(this@MainActivity)
+                }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),

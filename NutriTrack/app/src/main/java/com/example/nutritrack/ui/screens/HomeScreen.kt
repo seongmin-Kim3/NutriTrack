@@ -105,6 +105,7 @@ fun HomeScreen(
     vm: MealViewModel,
     aiVm: com.example.nutritrack.ui.viewmodel.HealthDiagnosisViewModel,
     waterVm: com.example.nutritrack.ui.viewmodel.WaterViewModel,
+    stepVm: com.example.nutritrack.ui.viewmodel.StepViewModel, // 🌟 만보기 뷰모델 추가
     goalPrefs: GoalPrefs,
     onAddMealWithType: (String) -> Unit,
     onHistory: () -> Unit,
@@ -126,6 +127,11 @@ fun HomeScreen(
     
     val waterIntake by waterVm.waterIntake.collectAsState()
     val waterGoal = waterVm.waterGoal
+    
+    // 🌟 만보기 데이터 관찰
+    val steps by stepVm.steps.collectAsState()
+    val caloriesBurned by stepVm.caloriesBurned.collectAsState()
+
     val scrollState = rememberScrollState()
     var isFabExpanded by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -454,6 +460,39 @@ fun HomeScreen(
                         }
                     }
                 }
+
+                // 🌟 4. 오늘 걸음수 및 소모 칼로리 (만보기)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            color = Color(0xFFE8F5E9),
+                            shape = CircleShape,
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.DirectionsWalk, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(28.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "오늘의 걸음", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(text = "$steps 걸음", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(text = "활동 에너지", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Text(text = "$caloriesBurned kcal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFEF5350))
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
